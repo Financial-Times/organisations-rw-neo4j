@@ -71,7 +71,7 @@ func TestCreateNotAllValuesPresent(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, Name: "Test",
+	roleToWrite := role{UUID: uuid, PrefLabel: "Test", IsBoardRole: false,
 		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
 
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
@@ -86,7 +86,7 @@ func TestCreateAddsBoardRoleLabelForBoardRole(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, Name: "Test",
+	roleToWrite := role{UUID: uuid, PrefLabel: "Test", IsBoardRole: true,
 		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
 
