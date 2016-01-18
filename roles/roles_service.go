@@ -36,15 +36,17 @@ func (pcd CypherDriver) Check() error {
 // Read - reads a role given a UUID
 func (pcd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 	results := []struct {
-		UUID              string `json:"uuid"`
-		PrefLabel         string `json:"prefLabel"`
-		FactsetIdentifier string `json:"factsetIdentifier"`
+		UUID              string   `json:"uuid"`
+		PrefLabel         string   `json:"prefLabel"`
+		FactsetIdentifier string   `json:"factsetIdentifier"`
+		Labels            []string `json:"labels"`
 	}{}
 
 	query := &neoism.CypherQuery{
 		Statement: `MATCH (n:Role {uuid:{uuid}}) return n.uuid
 		as uuid, n.prefLabel as prefLabel,
-		n.factsetIdentifier as factsetIdentifier`,
+		n.factsetIdentifier as factsetIdentifier,
+		labels(n) as labels`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
 		},
@@ -66,6 +68,12 @@ func (pcd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 	r := role{
 		UUID:      result.UUID,
 		PrefLabel: result.PrefLabel,
+	}
+
+	for labelLocation := range result.Labels {
+		if result.Labels[labelLocation] == "BoardRole" {
+			r.IsBoardRole = true
+		}
 	}
 
 	if result.FactsetIdentifier != "" {
