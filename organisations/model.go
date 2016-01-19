@@ -4,6 +4,7 @@ type OrgType string
 
 type organisation struct {
 	UUID                   string       `json:"uuid"`
+	Type                   OrgType      `json:"type"`
 	PrefLabel              string       `json:"properName"`
 	ProperName             string       `json:"properName"`
 	LegalName              string       `json:"legalName"`
