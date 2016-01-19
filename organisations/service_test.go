@@ -13,6 +13,7 @@ func TestWrite(t *testing.T) {
 	uuid := "4e484678-cf47-4168-b844-6adb47f8eb58"
 
 	db := getDatabaseConnection(t)
+	cleanDB(db, t)
 	checkDbClean(db, t)
 	cypherDriver := getCypherDriver(db)
 	fsIdentifier := identifier{
@@ -40,6 +41,7 @@ func TestWrite(t *testing.T) {
 	}
 
 	assert.NoError(cypherDriver.Write(org))
+	cleanDB(db, t)
 }
 
 func checkDbClean(db *neoism.Database, t *testing.T) {
@@ -74,6 +76,29 @@ func getDatabaseConnection(t *testing.T) *neoism.Database {
 	assert.NoError(err, "Failed to connect to Neo4j")
 	return db
 }
+
+func cleanDB(db *neoism.Database, t *testing.T) {
+	assert := assert.New(t)
+
+	deleteOrg := neoism.CypherQuery{
+		Statement: `
+		MATCH (org:Thing {uuid: '4e484678-cf47-4168-b844-6adb47f8eb58'}) DETACH DELETE org
+	`}
+
+	deletePar := neoism.CypherQuery{
+		Statement: `
+		MATCH (p:Thing {uuid: 'de38231e-e481-4958-b470-e124b2ef5a34'}) DETACH DELETE p
+	`}
+
+	deleteInd := neoism.CypherQuery{
+		Statement: `
+		MATCH (ind:Thing {uuid: 'c3d17865-f9d1-42f2-9ca2-4801cb5aacc0'}) DETACH DELETE ind
+	`}
+	deletes :=[]*neoism.CypherQuery{&deleteOrg, &deletePar, &deleteInd}
+	err := db.CypherBatch(deletes)
+	assert.NoError(err)
+}
+
 func getCypherDriver(db *neoism.Database) CypherDriver {
 	return NewCypherDriver(neoutils.StringerDb{db}, db)
 }
