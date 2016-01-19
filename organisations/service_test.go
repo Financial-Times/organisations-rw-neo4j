@@ -12,7 +12,9 @@ func TestWrite(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "4e484678-cf47-4168-b844-6adb47f8eb58"
 
-	cypherDriver := getCypherDriver(t)
+	db := getDatabaseConnection(t)
+	checkDbClean(db, t)
+	cypherDriver := getCypherDriver(db)
 	fsIdentifier := identifier{
 		Authority:       fsAuthority,
 		IdentifierValue: "identifierValue",
@@ -40,7 +42,28 @@ func TestWrite(t *testing.T) {
 	assert.NoError(cypherDriver.Write(org))
 }
 
-func getCypherDriver(t *testing.T) CypherDriver {
+func checkDbClean(db *neoism.Database, t *testing.T) {
+	assert := assert.New(t)
+
+	result := []struct {
+		Uuid string `json:"org.uuid"`
+	}{}
+
+	checkGraph := neoism.CypherQuery{
+		Statement: `
+			MATCH (org:Thing {uuid: {uuid}}) RETURN org.uuid
+		`,
+		Parameters: map[string]interface{}{
+			"uuid": "4e484678-cf47-4168-b844-6adb47f8eb58",
+		},
+		Result: &result,
+	}
+	err := db.Cypher(&checkGraph)
+	assert.NoError(err)
+	assert.Empty(result)
+}
+
+func getDatabaseConnection(t *testing.T) *neoism.Database {
 	assert := assert.New(t)
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
@@ -49,5 +72,8 @@ func getCypherDriver(t *testing.T) CypherDriver {
 
 	db, err := neoism.Connect(url)
 	assert.NoError(err, "Failed to connect to Neo4j")
+	return db
+}
+func getCypherDriver(db *neoism.Database) CypherDriver {
 	return NewCypherDriver(neoutils.StringerDb{db}, db)
 }

@@ -23,6 +23,7 @@ func (cd CypherDriver) Initialise() error {
 		"Organisation": "uuid"})
 }
 
+//Write - Writes an Organisation node
 func (cd CypherDriver) Write(thing interface{}) error {
 	o := thing.(organisation)
 
@@ -131,6 +132,46 @@ func (cd CypherDriver) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{query}
 	return cd.cypherRunner.CypherBatch(queries)
+}
+
+//Delete - Deletes a Role
+func (pcd CypherDriver) Delete(uuid string) (bool, error) {
+	clearNode := &neoism.CypherQuery{
+		Statement: `
+			MATCH (org:Thing {uuid: {uuid}})
+			REMOVE org:Concept:Organisation SET org={ uuid: {uuid}}
+		`,
+		Parameters: map[string]interface{}{
+			"uuid": uuid,
+		},
+		IncludeStats: true,
+	}
+
+	deleteNodes := &neoism.CypherQuery{
+		Statement: `
+		MATCH (org:Thing {uuid: '%s'})
+		OPTIONAL MATCH (org)-[a]-(x) WITH org, count(a) AS relCount WHERE relCount = 0
+		DELETE org
+		`,
+		Parameters: map[string]interface{}{
+			"uuid": uuid,
+		},
+		IncludeStats: true,
+	}
+
+	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{clearNode, deleteNodes})
+
+	s1, err := clearNode.Stats()
+
+	if err != nil {
+		return false, err
+	}
+
+	if s1.ContainsUpdates && s1.LabelsRemoved > 0 {
+		return true, err
+	}
+
+	return false, err
 }
 
 const (
