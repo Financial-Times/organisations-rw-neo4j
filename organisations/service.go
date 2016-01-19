@@ -134,7 +134,7 @@ func (cd CypherDriver) Write(thing interface{}) error {
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-//Delete - Deletes a Role
+//Delete - Deletes an Organisation
 func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
@@ -147,7 +147,7 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 		IncludeStats: true,
 	}
 
-	deleteNodes := &neoism.CypherQuery{
+	deleteNode := &neoism.CypherQuery{
 		Statement: `
 		MATCH (org:Thing {uuid: '%s'})
 		OPTIONAL MATCH (org)-[a]-(x) WITH org, count(a) AS relCount WHERE relCount = 0
@@ -159,7 +159,7 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 		IncludeStats: true,
 	}
 
-	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{clearNode, deleteNodes})
+	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{clearNode, deleteNode})
 
 	s1, err := clearNode.Stats()
 
