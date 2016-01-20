@@ -239,19 +239,21 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 		IncludeStats: true,
 	}
 
-	deleteNode := &neoism.CypherQuery{
-		Statement: `
-		MATCH (org:Thing {uuid: '%s'})
+	qs := []*neoism.CypherQuery{
+		clearNode,
+		&neoism.CypherQuery{
+			Statement: `
+		MATCH (org:Thing {uuid: {uuid}})
 		OPTIONAL MATCH (org)-[a]-(x) WITH org, count(a) AS relCount WHERE relCount = 0
 		DELETE org
 		`,
-		Parameters: map[string]interface{}{
-			"uuid": uuid,
+			Parameters: map[string]interface{}{
+				"uuid": uuid,
+			},
 		},
-		IncludeStats: true,
 	}
 
-	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{clearNode, deleteNode})
+	err := pcd.cypherRunner.CypherBatch(qs)
 
 	s1, err := clearNode.Stats()
 
