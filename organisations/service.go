@@ -2,7 +2,6 @@ package organisations
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/Financial-Times/neo-cypher-runner-go"
 	"github.com/Financial-Times/neo-utils-go"
@@ -202,7 +201,6 @@ func (cd CypherDriver) Read(uuid string) (organisation, bool, error) {
 	result := results[0]
 
 	o := organisation{
-		Type:                   Organisation,
 		UUID:                   result.UUID,
 		ProperName:             result.ProperName,
 		LegalName:              result.LegalName,
@@ -216,23 +214,16 @@ func (cd CypherDriver) Read(uuid string) (organisation, bool, error) {
 		IndustryClassification: result.IndustryUUID,
 	}
 
-	// switch i := len(result.Type) {
-	// case 3:
-	// 		o.Type = Organisation
-	// case 4:
-	// 		o.Type = Company
-	// case 5:
-	// 		o.Type = PublicCompany
-	// default:
-	// 		o.Type = ""
-	// }
-	fmt.Printf("%+v\n", result)
-	//	if len(result.TradeNames) > 0 {
-	//		println("hello")
-	//		for _, value := range result.TradeNames {
-	//			o.TradeNames = append(o.TradeNames, value)
-	//		}
-	//	}
+	i := len(result.Type)
+	if i == 3 {
+		o.Type = Organisation
+	}
+	if i == 4 {
+		o.Type = Company
+	}
+	if i == 5 {
+		o.Type = PublicCompany
+	}
 
 	if result.FactsetIdentifier != "" {
 		o.Identifiers = append(o.Identifiers, identifier{fsAuthority, result.FactsetIdentifier})
