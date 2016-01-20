@@ -29,8 +29,9 @@ Use gojson against a transformer endpoint to create a role struct and update the
 
 This service is built and deployed via Jenkins.
 
-<a href="<TODO>">Build job</a>
-<a href="<TODO>">Deploy job</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-roles-rw-neo4j/job/roles-rw-neo4j-build/">Build job</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-roles-rw-neo4j/job/roles-rw-neo4j-deploy-test/">Deploy job to Test</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-roles-rw-neo4j/job/roles-rw-neo4j-deploy-prod/">Deploy job to Prod</a>
 
 The build works via git tags. To prepare a new release
 - update the version in /puppet/ft-roles_rw_neo4j/Modulefile, e.g. to 0.0.12
