@@ -40,7 +40,7 @@ The build works via git tags. To prepare a new release
 The deploy also works via git tag and you can also select the environment to deploy to.
 
 ## Endpoints
-/people/{uuid}
+/roles/{uuid}
 ### PUT
 The only mandatory field is the uuid, and the uuid in the body must match the one used on the path.
 
