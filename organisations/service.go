@@ -56,22 +56,44 @@ func (cd CypherDriver) Write(thing interface{}) error {
 		}
 	}
 
-	params2 := map[string][]string{}
+	var formerNames []string
 
 	for _, formerName := range o.FormerNames {
-		params2["formerNames"] = append(params2["formerNames"], formerName)
+		formerNames = append(formerNames, formerName)
 	}
+
+	if len(formerNames) > 0 {
+		props["formerNames"] = formerNames
+	}
+
+	var localNames []string
 
 	for _, localName := range o.LocalNames {
-		params2["localNames"] = append(params2["localNames"], localName)
+		localNames = append(localNames, localName)
 	}
+
+	if len(localNames) > 0 {
+		props["localNames"] = localNames
+	}
+
+	var tradeNames []string
 
 	for _, tradeName := range o.TradeNames {
-		params2["tradeNames"] = append(params2["tradeNames"], tradeName)
+		tradeNames = append(tradeNames, tradeName)
 	}
 
+	if len(tradeNames) > 0 {
+		props["tradeNames"] = tradeNames
+	}
+
+	var tmeLabels []string
+
 	for _, tmeLabel := range o.TmeLabels {
-		params2["tmeLabels"] = append(params2["tmeLabels"], tmeLabel)
+		tmeLabels = append(tmeLabels, tmeLabel)
+	}
+
+	if len(tmeLabels) > 0 {
+		props["tmeLabels"] = tmeLabels
 	}
 
 	//
@@ -137,7 +159,7 @@ func (cd CypherDriver) Write(thing interface{}) error {
 }
 
 //Read - Internal Read of an Organisation
-func (cd CypherDriver) Read(uuid string) (interface{}, bool, error) {
+func (cd CypherDriver) Read(uuid string) (organisation, bool, error) {
 	results := []struct {
 		UUID              string   `json:"o.uuid"`
 		Type              []string `json:"type"`
@@ -180,15 +202,16 @@ func (cd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 	result := results[0]
 
 	o := organisation{
-		UUID:        result.UUID,
-		ProperName:  result.ProperName,
-		LegalName:   result.LegalName,
-		ShortName:   result.ShortName,
-		HiddenLabel: result.HiddenLabel,
-		// TradeNames:             result.TradeNames,
-		// LocalNames:             result.LocalNames,
-		// FormerNames:            result.FormerNames,
-		// TmeLabels:              result.TmeLabels,
+		Type:                   Organisation,
+		UUID:                   result.UUID,
+		ProperName:             result.ProperName,
+		LegalName:              result.LegalName,
+		ShortName:              result.ShortName,
+		HiddenLabel:            result.HiddenLabel,
+		TradeNames:             result.TradeNames,
+		LocalNames:             result.LocalNames,
+		FormerNames:            result.FormerNames,
+		TmeLabels:              result.TmeLabels,
 		ParentOrganisation:     result.ParentOrgUUID,
 		IndustryClassification: result.IndustryUUID,
 	}
@@ -204,12 +227,12 @@ func (cd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 	// 		o.Type = ""
 	// }
 	fmt.Printf("%+v\n", result)
-	if len(result.TradeNames) > 0 {
-		println("hello")
-		for _, value := range result.TradeNames {
-			o.TradeNames = append(o.TradeNames, value)
-		}
-	}
+	//	if len(result.TradeNames) > 0 {
+	//		println("hello")
+	//		for _, value := range result.TradeNames {
+	//			o.TradeNames = append(o.TradeNames, value)
+	//		}
+	//	}
 
 	if result.FactsetIdentifier != "" {
 		o.Identifiers = append(o.Identifiers, identifier{fsAuthority, result.FactsetIdentifier})
