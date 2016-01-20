@@ -1,4 +1,4 @@
-class people_rw_neo4j::monitoring {
+class roles_rw_neo4j::monitoring {
 
   $port = "8080"
   $cmd_check_http_json = "/usr/lib64/nagios/plugins/check_http_json.py --host $hostname:$port --path /__health --key_equals \"\$ARG1\$\""
@@ -44,7 +44,7 @@ class people_rw_neo4j::monitoring {
     check_interval      => 1,
     action_url          => $action_url,
     notes_url           => $action_url,
-    notes               => "Severity 2 \\n Service unavailable \\n People rw-neo4j GO healthchecks are failing. Please check http://${::hostname}:8080/__health \\n\\n",
+    notes               => "Severity 2 \\n Service unavailable \\n roles rw-neo4j GO healthchecks are failing. Please check http://${::hostname}:8080/__health \\n\\n",
     service_description => "Check the application healthcheck",
     display_name        => "${hostname}_check_http_json",
     tag                 => $content_platform_nagios::client::tags_to_apply,
