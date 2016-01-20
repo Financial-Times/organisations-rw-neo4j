@@ -12,9 +12,7 @@ func TestWrite(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "4e484678-cf47-4168-b844-6adb47f8eb58"
 
-	db := getDatabaseConnection(t)
-	cleanDB(db, t)
-	checkDbClean(db, t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
 	fsIdentifier := identifier{
 		Authority:       fsAuthority,
@@ -41,16 +39,14 @@ func TestWrite(t *testing.T) {
 	}
 
 	assert.NoError(cypherDriver.Write(org))
-	cleanDB(db, t)
+	cleanDB(db, t, assert)
 }
 
 func TestPartialDelete(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "4e484678-cf47-4168-b844-6adb47f8eb58"
 
-	db := getDatabaseConnection(t)
-	cleanDB(db, t)
-	checkDbClean(db, t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
 	fsIdentifier := identifier{
 		Authority:       fsAuthority,
@@ -93,26 +89,24 @@ func TestPartialDelete(t *testing.T) {
 	err := db.Cypher(&getOrg)
 	assert.NoError(err)
 	assert.NotEmpty(result)
-	cleanDB(db, t)
+	cleanDB(db, t, assert)
 }
 
 func TestFullDelete(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "4e484678-cf47-4168-b844-6adb47f8eb58"
 
-	db := getDatabaseConnection(t)
-	cleanDB(db, t)
-	checkDbClean(db, t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
 	fsIdentifier := identifier{
 		Authority:       fsAuthority,
 		IdentifierValue: "identifierValue",
 	}
 	org := organisation{
-		UUID:                   uuid,
-		Type:                   Organisation,
-		Identifiers:            []identifier{fsIdentifier},
-		ProperName:             "Proper Name",
+		UUID:        uuid,
+		Type:        Organisation,
+		Identifiers: []identifier{fsIdentifier},
+		ProperName:  "Proper Name",
 	}
 
 	cypherDriver.Write(org)
@@ -132,7 +126,19 @@ func TestFullDelete(t *testing.T) {
 	err := db.Cypher(&getOrg)
 	assert.NoError(err)
 	assert.Empty(result)
-	cleanDB(db, t)
+	cleanDB(db, t, assert)
+}
+
+func TestDeleteNothing(t *testing.T) {
+	assert := assert.New(t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+
+	cypherDriver := getCypherDriver(db)
+	res, err := cypherDriver.Delete("4e484678-cf47-4168-b844-6adb47f8eb58")
+
+	assert.NoError(err)
+	assert.False(res)
+	cleanDB(db, t, assert)
 }
 
 func checkDbClean(db *neoism.Database, t *testing.T) {
@@ -156,8 +162,14 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 	assert.Empty(result)
 }
 
-func getDatabaseConnection(t *testing.T) *neoism.Database {
-	assert := assert.New(t)
+func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions) *neoism.Database {
+	db := getDatabaseConnection(t, assert)
+	cleanDB(db, t, assert)
+	checkDbClean(db, t)
+	return db
+}
+
+func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Database {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "http://localhost:7474/db/data"
@@ -168,25 +180,23 @@ func getDatabaseConnection(t *testing.T) *neoism.Database {
 	return db
 }
 
-func cleanDB(db *neoism.Database, t *testing.T) {
-	assert := assert.New(t)
-
-	deleteOrg := neoism.CypherQuery{
-		Statement: `
+func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
+	qs := []*neoism.CypherQuery{
+		&neoism.CypherQuery{
+			Statement: `
 		MATCH (org:Thing {uuid: '4e484678-cf47-4168-b844-6adb47f8eb58'}) DETACH DELETE org
-	`}
-
-	deletePar := neoism.CypherQuery{
-		Statement: `
+	`},
+		&neoism.CypherQuery{
+			Statement: `
 		MATCH (p:Thing {uuid: 'de38231e-e481-4958-b470-e124b2ef5a34'}) DETACH DELETE p
-	`}
-
-	deleteInd := neoism.CypherQuery{
-		Statement: `
+	`},
+		&neoism.CypherQuery{
+			Statement: `
 		MATCH (ind:Thing {uuid: 'c3d17865-f9d1-42f2-9ca2-4801cb5aacc0'}) DETACH DELETE ind
-	`}
-	deletes :=[]*neoism.CypherQuery{&deleteOrg, &deletePar, &deleteInd}
-	err := db.CypherBatch(deletes)
+	`},
+	}
+
+	err := db.CypherBatch(qs)
 	assert.NoError(err)
 }
 
