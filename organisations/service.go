@@ -2,6 +2,8 @@ package organisations
 
 import (
 	"bytes"
+	"fmt"
+
 	"github.com/Financial-Times/neo-cypher-runner-go"
 	"github.com/Financial-Times/neo-utils-go"
 	"github.com/jmcvetta/neoism"
@@ -132,6 +134,96 @@ func (cd CypherDriver) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{query}
 	return cd.cypherRunner.CypherBatch(queries)
+}
+
+//Read - Internal Read of an Organisation
+func (cd CypherDriver) Read(uuid string) (interface{}, bool, error) {
+	results := []struct {
+		UUID              string   `json:"o.uuid"`
+		Type              []string `json:"type"`
+		ProperName        string   `json:"o.properName"`
+		LegalName         string   `json:"o.legalName"`
+		ShortName         string   `json:"o.shortName"`
+		HiddenLabel       string   `json:"o.hiddenLabel"`
+		FactsetIdentifier string   `json:"o.factsetIdentifier"`
+		LeiCode           string   `json:"o.leiCode"`
+		TradeNames        []string `json:"o.tradeNames"`
+		LocalNames        []string `json:"o.localNames"`
+		FormerNames       []string `json:"o.formerNames"`
+		TmeLabels         []string `json:"o.tmeLabels"`
+		ParentOrgUUID     string   `json:"par.uuid"`
+		IndustryUUID      string   `json:"ind.uuid"`
+	}{}
+
+	query := &neoism.CypherQuery{
+		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
+            OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
+            RETURN o.uuid, o.properName, labels(o) AS type, o.factsetIdentifier, o.leiCode, o.legalName, o.shortName, o.hiddenLabel,
+            o.formerNames, o.tradeNames, o.localNames, o.tmeLabels, ind.uuid, par.uuid`,
+
+		Parameters: map[string]interface{}{
+			"uuid": uuid,
+		},
+		Result: &results,
+	}
+
+	err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
+
+	if err != nil {
+		return organisation{}, false, err
+	}
+
+	if len(results) == 0 {
+		return organisation{}, false, nil
+	}
+
+	result := results[0]
+
+	o := organisation{
+		UUID:        result.UUID,
+		ProperName:  result.ProperName,
+		LegalName:   result.LegalName,
+		ShortName:   result.ShortName,
+		HiddenLabel: result.HiddenLabel,
+		// TradeNames:             result.TradeNames,
+		// LocalNames:             result.LocalNames,
+		// FormerNames:            result.FormerNames,
+		// TmeLabels:              result.TmeLabels,
+		ParentOrganisation:     result.ParentOrgUUID,
+		IndustryClassification: result.IndustryUUID,
+	}
+
+	// switch i := len(result.Type) {
+	// case 3:
+	// 		o.Type = Organisation
+	// case 4:
+	// 		o.Type = Company
+	// case 5:
+	// 		o.Type = PublicCompany
+	// default:
+	// 		o.Type = ""
+	// }
+	fmt.Printf("%+v\n", result)
+	if len(result.TradeNames) > 0 {
+		println("hello")
+		for _, value := range result.TradeNames {
+			o.TradeNames = append(o.TradeNames, value)
+		}
+	}
+
+	if result.FactsetIdentifier != "" {
+		o.Identifiers = append(o.Identifiers, identifier{fsAuthority, result.FactsetIdentifier})
+	}
+
+	if result.LeiCode != "" {
+		o.Identifiers = append(o.Identifiers, identifier{leiIdentifier, result.LeiCode})
+	}
+
+	if result.FactsetIdentifier == "" && result.LeiCode == "" {
+		o.Identifiers = make([]identifier, 0, 0)
+	}
+
+	return o, true, nil
 }
 
 //Delete - Deletes an Organisation
