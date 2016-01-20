@@ -149,7 +149,7 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 
 	deleteNode := &neoism.CypherQuery{
 		Statement: `
-		MATCH (org:Thing {uuid: '%s'})
+		MATCH (org:Thing {uuid: {uuid}})
 		OPTIONAL MATCH (org)-[a]-(x) WITH org, count(a) AS relCount WHERE relCount = 0
 		DELETE org
 		`,
