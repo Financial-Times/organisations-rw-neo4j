@@ -16,7 +16,7 @@ class roles_rw_neo4j {
   $status_check_url = "http://`hostname`:8080/__ping"
   $startup_timeout = 20
 
-  $service_args = hiera('configParameters','')
+  $configParameters = hiera('configParameters','')
 
   class { 'common_pp_up': }
   class { "${module_name}::monitoring": }
