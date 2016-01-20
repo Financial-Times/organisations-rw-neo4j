@@ -1,4 +1,4 @@
-class roles_rw_neo4j::monitoring {
+class people_rw_neo4j::monitoring {
 
   $port = "8080"
   $cmd_check_http_json = "/usr/lib64/nagios/plugins/check_http_json.py --host $hostname:$port --path /__health --key_equals \"\$ARG1\$\""
