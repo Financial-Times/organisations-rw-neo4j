@@ -12,6 +12,7 @@ import (
 const (
 	fullOrgUuid    = "4e484678-cf47-4168-b844-6adb47f8eb58"
 	minimalOrgUuid = "33f93f25-3301-417e-9b20-50b27d215617"
+	oddCharOrgUuid = "161403e2-074f-3c82-9328-0337e909ac8c"
 )
 
 var fsIdentifier = identifier{
@@ -26,7 +27,7 @@ var leiCodeIdentifier = identifier{
 
 var fullOrg = organisation{
 	UUID:                   fullOrgUuid,
-	Type:                   Company,
+	Type:                   PublicCompany,
 	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
@@ -55,20 +56,10 @@ func TestWriteNewOrganisation(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
-	result := []struct {
-		Uuid string `json:"t.uuid"`
-	}{}
+	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
 
-	getOrg := neoism.CypherQuery{
-		Statement: `
-			MATCH (t:Thing {uuid:"4e484678-cf47-4168-b844-6adb47f8eb58"}) RETURN t.uuid
-			`,
-		Result: &result,
-	}
-
-	err := db.Cypher(&getOrg)
 	assert.NoError(err)
-	assert.NotEmpty(result)
+	assert.NotEmpty(storedOrg)
 	cleanDB(db, t, assert)
 }
 
@@ -98,6 +89,34 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
+	cleanDB(db, t, assert)
+}
+
+func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+
+	var oddCharOrg = organisation{
+		UUID:               oddCharOrgUuid,
+		Type:               Company,
+		ProperName:         "TBWA/Paling Walters Ltd.",
+		Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
+		ParentOrganisation: "5852ca0f-f254-3002-b05c-d64a354a661e",
+		ShortName:          "TBWA\\Paling Walters",
+		FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
+		HiddenLabel:        "TBWA PALING WALTERS LTD",
+	}
+
+	assert.NoError(cypherDriver.Write(oddCharOrg))
+
+	storedOrg, found, err := cypherDriver.Read(oddCharOrgUuid)
+
+	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
+	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)
+	assert.Equal(oddCharOrg, storedOrg, "organisations should be the same")
+	cleanDB(db, t, assert)
 }
 
 func TestReadOrganisation(t *testing.T) {
@@ -138,20 +157,10 @@ func TestDeleteWithRelationships(t *testing.T) {
 	cypherDriver.Write(fullOrg)
 	cypherDriver.Delete(fullOrgUuid)
 
-	result := []struct {
-		Uuid string `json:"t.uuid"`
-	}{}
+	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
 
-	getOrg := neoism.CypherQuery{
-		Statement: `
-			MATCH (t:Thing {uuid:"4e484678-cf47-4168-b844-6adb47f8eb58"}) RETURN t.uuid
-			`,
-		Result: &result,
-	}
-
-	err := db.Cypher(&getOrg)
 	assert.NoError(err)
-	assert.NotEmpty(result)
+	assert.NotEmpty(storedOrg)
 	cleanDB(db, t, assert)
 }
 

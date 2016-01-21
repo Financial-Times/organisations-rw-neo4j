@@ -1,6 +1,6 @@
-class people_rw_neo4j {
+class organisations_rw_neo4j {
 
-  $service_name = "people-rw-neo4j"
+  $service_name = "organisations-rw-neo4j"
   $user = $service_name
   $group = $user
   $install_dir = "/usr/local/$service_name"
