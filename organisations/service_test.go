@@ -1,6 +1,7 @@
 package organisations
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -101,7 +102,7 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	var oddCharOrg = organisation{
 		UUID:               oddCharOrgUuid,
 		Type:               Company,
-		ProperName:         "TBWA/Paling Walters Ltd.",
+		ProperName:         "TBWA\\Paling Walters Ltd.",
 		Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
 		ParentOrganisation: "5852ca0f-f254-3002-b05c-d64a354a661e",
 		ShortName:          "TBWA\\Paling Walters",
@@ -112,6 +113,9 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	assert.NoError(cypherDriver.Write(oddCharOrg))
 
 	storedOrg, found, err := cypherDriver.Read(oddCharOrgUuid)
+
+	fmt.Printf("%+v", oddCharOrg)
+	fmt.Printf("%+v", storedOrg)
 
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)

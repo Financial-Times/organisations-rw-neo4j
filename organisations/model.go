@@ -5,18 +5,17 @@ type OrgType string
 type organisation struct {
 	UUID                   string       `json:"uuid"`
 	Type                   OrgType      `json:"type"`
-	PrefLabel              string       `json:"properName"`
 	ProperName             string       `json:"properName"`
-	LegalName              string       `json:"legalName"`
-	ShortName              string       `json:"shortName"`
-	HiddenLabel            string       `json:"hiddenLabel"`
+	LegalName              string       `json:"legalName,omitempty"`
+	ShortName              string       `json:"shortName,omitempty"`
+	HiddenLabel            string       `json:"hiddenLabel,omitempty"`
 	Identifiers            []identifier `json:"identifiers,omitempty"`
-	TradeNames             []string     `json:"tradeNames"`
-	LocalNames             []string     `json:"localNames"`
-	FormerNames            []string     `json:"formerNames"`
-	TmeLabels              []string     `json:"tmeLabels"`
-	IndustryClassification string       `json:"industryClassification"`
-	ParentOrganisation     string       `json:"parentOrganisation"`
+	TradeNames             []string     `json:"tradeNames,omitempty"`
+	LocalNames             []string     `json:"localNames,omitempty"`
+	FormerNames            []string     `json:"formerNames,omitempty"`
+	TmeLabels              []string     `json:"tmeLabels,omitempty"`
+	IndustryClassification string       `json:"industryClassification,omitempty"`
+	ParentOrganisation     string       `json:"parentOrganisation,omitempty"`
 }
 
 type identifier struct {
