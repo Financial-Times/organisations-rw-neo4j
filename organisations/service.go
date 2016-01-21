@@ -95,48 +95,11 @@ func (cd CypherDriver) Write(thing interface{}) error {
 		props["tmeLabels"] = tmeLabels
 	}
 
-	//
-	//	MERGE (o:Thing {uuid:'0786619b-0969-43d4-9372-f27e4029f565'})
-	//	REMOVE o:PublicCompany:Company:Organisation:Concept:Thing
-	//	SET o:Organisation:Concept:Thing
-	//	SET o={
-	//		uuid:'0786619b-0969-43d4-9372-f27e4029f565',
-	//		properName:'Proper Name',
-	//		prefLabel:'Proper Name',
-	//		factsetIdentifier:'identifierValue',
-	//		leiCode:'leiCode',
-	//		legalName:'Legal Name',
-	//		shortName:'Short Name',
-	//		hiddenLabel:'Hidden Label',
-	//		formerNames:[
-	//		'Older Name, inc.',
-	//		'Old Name, inc.'
-	//	],
-	//		localNames:[
-	//		'Oldé Name, inc.',
-	//		'Tradé Name'
-	//	],
-	//		tradeNames:[
-	//		'Older Name, inc.',
-	//		'Old Name, inc.'
-	//	],
-	//		tmeLabels:[
-	//		'tmeLabel1',
-	//		'tmeLabel3',
-	//		'tmeLabel2'
-	//	]
-	//	}
-	//	MERGE (p:Thing{uuid:'b68b6570-4eb5-4624-98ed-ca3366e42311'})
-	//	MERGE (o)-[:SUB_ORGANISATION_OF]->(p)
-	//	MERGE (ic:Thing{uuid:'e077af65-267e-4c06-8f06-ad7b9f3f8b19'})
-	//	MERGE (o)-[:HAS_CLASSIFICATION]->(ic)
-
 	var statement bytes.Buffer
 	statement.WriteString(`MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept:Thing
-					SET o:Organisation:Concept:Thing
 					SET o={props} `)
-
+	statement.WriteString("SET o:" + o.Type.String())
 	if o.IndustryClassification != "" {
 		statement.WriteString("MERGE (ic:Thing{uuid:'" + o.IndustryClassification + "'}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ")
 	}

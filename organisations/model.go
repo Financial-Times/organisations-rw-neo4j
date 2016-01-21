@@ -24,8 +24,19 @@ type identifier struct {
 	IdentifierValue string `json:"identifierValue"`
 }
 
+func (o OrgType) String() string {
+	if o == Organisation {
+		return "Organisation:Concept:Thing "
+	} else if o == Company {
+		return "Company:Organisation:Concept:Thing "
+	} else if o == PublicCompany {
+		return "PublicCompany:Company:Organisation:Concept:Thing "
+	}
+	return "Thing"
+}
+
 const (
+	PublicCompany OrgType = "PublicCompany"
+	Company       OrgType = "Company"
 	Organisation  OrgType = "Organisation"
-	Company               = "Company"
-	PublicCompany         = "PublicCompany"
 )

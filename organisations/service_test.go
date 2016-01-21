@@ -26,7 +26,7 @@ var leiCodeIdentifier = identifier{
 
 var fullOrg = organisation{
 	UUID:                   fullOrgUuid,
-	Type:                   Organisation,
+	Type:                   Company,
 	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
@@ -69,7 +69,7 @@ func TestWrite(t *testing.T) {
 	err := db.Cypher(&getOrg)
 	assert.NoError(err)
 	assert.NotEmpty(result)
-	cleanDB(db, t, assert)
+	// cleanDB(db, t, assert)
 }
 
 func TestRead(t *testing.T) {
@@ -99,62 +99,61 @@ func TestDeleteNothing(t *testing.T) {
 	cleanDB(db, t, assert)
 }
 
-// func TestDeleteWithRelationships(t *testing.T) {
-// 	assert := assert.New(t)
-//
-// 	db := getDatabaseConnection(t)
-// 	cleanDB(db, t, assert)
-// 	checkDbClean(db, t)
-// 	cypherDriver := getCypherDriver(db)
-//
-// 	cypherDriver.Write(fullOrg)
-// 	cypherDriver.Delete(fullOrgUuid)
-//
-// 	result := []struct {
-// 		Uuid string `json:"t.uuid"`
-// 	}{}
-//
-// 	getOrg := neoism.CypherQuery{
-// 		Statement: `
-// 			MATCH (t:Thing {uuid:"4e484678-cf47-4168-b844-6adb47f8eb58"}) RETURN t.uuid
-// 			`,
-// 		Result: &result,
-// 	}
-//
-// 	err := db.Cypher(&getOrg)
-// 	assert.NoError(err)
-// 	assert.NotEmpty(result)
-// 	cleanDB(db, t, assert)
-// }
-//
-// func TestDeleteNoRelationships(t *testing.T) {
-// 	assert := assert.New(t)
-//
-// 	db := getDatabaseConnection(t)
-// 	cleanDB(db, t, assert)
-// 	checkDbClean(db, t)
-// 	cypherDriver := getCypherDriver(db)
-//
-// 	cypherDriver.Write(minimalOrg)
-// 	cypherDriver.Delete(minimalOrgUuid)
-//
-// 	result := []struct {
-// 		Uuid string `json:"t.uuid"`
-// 	}{}
-//
-// 	getOrg := neoism.CypherQuery{
-// 		Statement: `
-// 			MATCH (t:Thing {uuid:"33f93f25-3301-417e-9b20-50b27d215617"}) RETURN t.uuid
-// 			`,
-// 		Result: &result,
-// 	}
-//
-// 	err := db.Cypher(&getOrg)
-// 	assert.NoError(err)
-// 	// TODO: result should be empty
-// 	assert.NotEmpty(result)
-// 	cleanDB(db, t, assert)
-// }
+func TestDeleteWithRelationships(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnection(t, assert)
+	cleanDB(db, t, assert)
+	checkDbClean(db, t)
+	cypherDriver := getCypherDriver(db)
+
+	cypherDriver.Write(fullOrg)
+	cypherDriver.Delete(fullOrgUuid)
+
+	result := []struct {
+		Uuid string `json:"t.uuid"`
+	}{}
+
+	getOrg := neoism.CypherQuery{
+		Statement: `
+			MATCH (t:Thing {uuid:"4e484678-cf47-4168-b844-6adb47f8eb58"}) RETURN t.uuid
+			`,
+		Result: &result,
+	}
+
+	err := db.Cypher(&getOrg)
+	assert.NoError(err)
+	assert.NotEmpty(result)
+	cleanDB(db, t, assert)
+}
+
+func TestDeleteNoRelationships(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnection(t, assert)
+	cleanDB(db, t, assert)
+	checkDbClean(db, t)
+	cypherDriver := getCypherDriver(db)
+
+	cypherDriver.Write(minimalOrg)
+	cypherDriver.Delete(minimalOrgUuid)
+
+	result := []struct {
+		Uuid string `json:"t.uuid"`
+	}{}
+
+	getOrg := neoism.CypherQuery{
+		Statement: `
+			MATCH (t:Thing {uuid:"33f93f25-3301-417e-9b20-50b27d215617"}) RETURN t.uuid
+			`,
+		Result: &result,
+	}
+
+	err := db.Cypher(&getOrg)
+	assert.NoError(err)
+	assert.Empty(result)
+	cleanDB(db, t, assert)
+}
 
 func checkDbClean(db *neoism.Database, t *testing.T) {
 	assert := assert.New(t)
