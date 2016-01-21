@@ -25,7 +25,7 @@ func NewCypherDriver(cypherRunner neocypherrunner.CypherRunner, indexManager neo
 
 //Initialise initialisation of the indexes
 func (pcd CypherDriver) Initialise() error {
-	return neoutils.EnsureIndexes(pcd.indexManager, map[string]string{"Role": "uuid"})
+	return neoutils.EnsureConstraints(pcd.indexManager, map[string]string{"Role": "uuid"})
 }
 
 // Check - Feeds into the Healthcheck and checks whether we can connect to Neo and that the datastore isn't empty
