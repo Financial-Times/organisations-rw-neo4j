@@ -246,6 +246,6 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 	assert.NoError(err)
 }
 
-func getCypherDriver(db *neoism.Database) CypherDriver {
-	return NewCypherDriver(neoutils.StringerDb{db}, db)
+func getCypherDriver(db *neoism.Database) service {
+	return NewCypherOrganisationService(neoutils.StringerDb{db}, db)
 }

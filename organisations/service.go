@@ -3,21 +3,22 @@ package organisations
 import (
 	"bytes"
 
+	"encoding/json"
 	"github.com/Financial-Times/neo-cypher-runner-go"
 	"github.com/Financial-Times/neo-utils-go"
 	"github.com/jmcvetta/neoism"
 )
 
-type CypherDriver struct {
+type service struct {
 	cypherRunner neocypherrunner.CypherRunner
 	indexManager neoutils.IndexManager
 }
 
-func NewCypherDriver(cypherRunner neocypherrunner.CypherRunner, indexManager neoutils.IndexManager) CypherDriver {
-	return CypherDriver{cypherRunner, indexManager}
+func NewCypherOrganisationService(cypherRunner neocypherrunner.CypherRunner, indexManager neoutils.IndexManager) service {
+	return service{cypherRunner, indexManager}
 }
 
-func (cd CypherDriver) Initialise() error {
+func (cd service) Initialise() error {
 	return neoutils.EnsureIndexes(cd.indexManager, map[string]string{
 		"Thing":        "uuid",
 		"Concept":      "uuid",
@@ -25,7 +26,7 @@ func (cd CypherDriver) Initialise() error {
 }
 
 //Write - Writes an Organisation node
-func (cd CypherDriver) Write(thing interface{}) error {
+func (cd service) Write(thing interface{}) error {
 	o := thing.(organisation)
 
 	props := map[string]interface{}{
@@ -121,7 +122,7 @@ func (cd CypherDriver) Write(thing interface{}) error {
 }
 
 //Read - Internal Read of an Organisation
-func (cd CypherDriver) Read(uuid string) (organisation, bool, error) {
+func (cd service) Read(uuid string) (interface{}, bool, error) {
 	results := []struct {
 		UUID              string   `json:"o.uuid"`
 		Type              []string `json:"type"`
@@ -204,7 +205,7 @@ func (cd CypherDriver) Read(uuid string) (organisation, bool, error) {
 }
 
 //Delete - Deletes an Organisation
-func (pcd CypherDriver) Delete(uuid string) (bool, error) {
+func (pcd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
@@ -243,6 +244,35 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 	}
 
 	return false, err
+}
+
+func (s service) Check() error {
+	return neoutils.Check(s.cypherRunner)
+}
+
+func (s service) Count() (int, error) {
+
+	results := []struct {
+		Count int `json:"c"`
+	}{}
+
+	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{&neoism.CypherQuery{
+		Statement: `MATCH (n:Organisation) return count(n) as c`,
+		Result:    &results,
+	}})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return results[0].Count, nil
+}
+
+func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
+	org := organisation{}
+	err := dec.Decode(&org)
+	return org, org.UUID, err
+
 }
 
 const (
