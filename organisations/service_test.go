@@ -82,7 +82,7 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	storedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
 
-	assert.Empty(storedOrg.HiddenLabel, "Minimal org should not have a hidden label value.")
+	assert.Empty(storedOrg.(organisation).HiddenLabel, "Minimal org should not have a hidden label value.")
 
 	updatedOrg := organisation{
 		UUID:        minimalOrgUuid,
@@ -97,7 +97,7 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
-	assert.NotEmpty(storedUpdatedOrg.HiddenLabel, "Updated org should have a hidden label value")
+	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
 }
 
 func TestReadOrganisation(t *testing.T) {
