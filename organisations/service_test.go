@@ -47,7 +47,7 @@ var minimalOrg = organisation{
 	ProperName:  "Proper Name",
 }
 
-func TestWrite(t *testing.T) {
+func TestWriteNewOrganisation(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
@@ -69,10 +69,38 @@ func TestWrite(t *testing.T) {
 	err := db.Cypher(&getOrg)
 	assert.NoError(err)
 	assert.NotEmpty(result)
-	// cleanDB(db, t, assert)
+	cleanDB(db, t, assert)
 }
 
-func TestRead(t *testing.T) {
+func TestWriteWillUpdateOrg(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+
+	assert.NoError(cypherDriver.Write(minimalOrg))
+
+	storedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+
+	assert.Empty(storedOrg.HiddenLabel, "Minimal org should not have a hidden label value.")
+
+	updatedOrg := organisation{
+		UUID:        minimalOrgUuid,
+		Type:        Organisation,
+		Identifiers: []identifier{fsIdentifier},
+		ProperName:  "Updated Name",
+		HiddenLabel: "No longer hidden",
+	}
+
+	assert.NoError(cypherDriver.Write(updatedOrg))
+
+	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+
+	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
+	assert.NotEmpty(storedUpdatedOrg.HiddenLabel, "Updated org should have a hidden label value")
+}
+
+func TestReadOrganisation(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
