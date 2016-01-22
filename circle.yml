@@ -7,3 +7,5 @@ machine:
 test:
   pre:
     - 'curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d ''{"password":"x"}''  http://localhost:7474/user/neo4j/password'
+  post:
+    - ./bump_n_tag.sh
