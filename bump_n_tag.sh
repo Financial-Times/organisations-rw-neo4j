@@ -14,8 +14,8 @@ then
 	echo "New version is $TAG"
         sed -e s/^version\ '.*'$/version\ \'${TAG}\'/ ${MANIFEST} > Modulefile.tmp && mv Modulefile.tmp ${MANIFEST}
 	git commit $MANIFEST -m "Updated version to $TAG"
-	git tag $TAG
-	git push --all origin
+	git tag -a $TAG -m "Auto tagged release." 
+	git push --follow-tags
 else
 	echo "Could not find a valid version number. Version text was '$VERSION_TEXT'"
 	exit 1
