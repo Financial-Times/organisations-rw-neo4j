@@ -21,9 +21,13 @@ All arguments are optional, they default to a local Neo4j install on the default
 NB: the default batchSize is much higher than the throughput the instance data ingester currently can cope with.
 
 ## Updating the model
+We use the transformer to get the information to write and from that we establish the json for the request. This representation is held in the model.go in a struct called role.
+
 Use gojson against a transformer endpoint to create a role struct and update the role/model.go file. NB: we DO need a separate identifier struct
 
-`curl http://<TODO>:8080/transformers/roles/344fdb1d-0585-31f7-814f-b478e54dbe1f | gojson -name=person`
+Please note that the transformer for roles is actually within the membership transformer. Currently there are only approx 50 roles and this is a controlled list e.g CEO
+
+`curl http://ftaps50683-law1a-eu-p:8080/transformers/roles/344fdb1d-0585-31f7-814f-b478e54dbe1f | gojson -name=person`
 
 ## Building
 
