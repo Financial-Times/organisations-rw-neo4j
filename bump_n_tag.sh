@@ -9,8 +9,8 @@ then
 	echo "Current version: $VERSION"
 	MAJOR=`echo "$VERSION" | grep -oEi '[0-9]+[.][0-9]+'`
 	MINOR=`echo "$VERSION" | grep -oEi '[0-9]+$'`
-	NEW_MINOR=`echo "$MINOR + 1" | bc`
-	TAG="$MAJOR.$NEW_MINOR"
+	NEW_MINOR=`awk "BEGIN {print 1 + $MINOR}"`
+	TAG=$MAJOR.$NEW_MINOR
 	echo "New version is $TAG"
         sed -e s/^version\ '.*'$/version\ \'${TAG}\'/ ${MANIFEST} > Modulefile.tmp && mv Modulefile.tmp ${MANIFEST}
 	git commit $MANIFEST -m "Updated version to $TAG"

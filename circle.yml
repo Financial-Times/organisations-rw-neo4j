@@ -9,4 +9,6 @@ test:
     - 'curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d ''{"password":"x"}''  http://localhost:7474/user/neo4j/password'
   post:
     - chmod +x bump_n_tag.sh
+    - git config --global user.email "Semantic.Metadata.Development@ft.com"
+    - git config --global user.name "CicleCi"
     - ./bump_n_tag.sh
