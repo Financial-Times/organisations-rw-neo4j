@@ -11,4 +11,4 @@ test:
     - chmod +x bump_n_tag.sh
     - git config --global user.email "Semantic.Metadata.Development@ft.com"
     - git config --global user.name "CicleCi"
-    - ./bump_n_tag.sh
+    # - ./bump_n_tag.sh
