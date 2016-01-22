@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 MANIFEST=`find puppet/ -name Modulefile | sed "s|^\./||"`
 VERSION_REGEX="[0-9]+\.[0-9]+\.[0-9]"
