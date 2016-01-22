@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"encoding/json"
+
 	"github.com/Financial-Times/neo-cypher-runner-go"
 	"github.com/Financial-Times/neo-utils-go"
 	"github.com/jmcvetta/neoism"
@@ -19,7 +20,7 @@ func NewCypherOrganisationService(cypherRunner neocypherrunner.CypherRunner, ind
 }
 
 func (cd service) Initialise() error {
-	return neoutils.EnsureIndexes(cd.indexManager, map[string]string{
+	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
 		"Thing":        "uuid",
 		"Concept":      "uuid",
 		"Organisation": "uuid"})
@@ -209,7 +210,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
-			REMOVE org:Concept:Organisation SET org={ uuid: {uuid}}
+			REMOVE org:Concept:Organisation:Company:PublicCompany SET org={ uuid: {uuid}}
 		`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
@@ -276,6 +277,6 @@ func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 }
 
 const (
-	fsAuthority   = "http://api.ft.com/system/FACTSET"
+	fsAuthority   = "http://api.ft.com/system/FACTSET-EDM"
 	leiIdentifier = "http://api.ft.com/system/LEI"
 )
