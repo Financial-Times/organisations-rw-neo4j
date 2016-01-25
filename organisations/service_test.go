@@ -36,7 +36,7 @@ var fullOrg = organisation{
 	FormerNames:            []string{"Old Name, inc.", "Older Name, inc."},
 	TradeNames:             []string{"Old Trade Name, inc.", "Older Trade Name, inc."},
 	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
-	TmeLabels:              []string{"tmeLabel1", "tmeLabel2", "tmeLabel3"},
+	Aliases:                []string{"alias1", "alias2", "alias3"},
 	ParentOrganisation:     "de38231e-e481-4958-b470-e124b2ef5a34",
 	IndustryClassification: "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0",
 }

@@ -13,7 +13,7 @@ type organisation struct {
 	TradeNames             []string     `json:"tradeNames,omitempty"`
 	LocalNames             []string     `json:"localNames,omitempty"`
 	FormerNames            []string     `json:"formerNames,omitempty"`
-	TmeLabels              []string     `json:"tmeLabels,omitempty"`
+	Aliases                []string     `json:"aliases,omitempty"`
 	IndustryClassification string       `json:"industryClassification,omitempty"`
 	ParentOrganisation     string       `json:"parentOrganisation,omitempty"`
 }

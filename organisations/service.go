@@ -87,14 +87,14 @@ func (cd service) Write(thing interface{}) error {
 		props["tradeNames"] = tradeNames
 	}
 
-	var tmeLabels []string
+	var aliases []string
 
-	for _, tmeLabel := range o.TmeLabels {
-		tmeLabels = append(tmeLabels, tmeLabel)
+	for _, alias := range o.Aliases {
+		aliases = append(aliases, alias)
 	}
 
-	if len(tmeLabels) > 0 {
-		props["tmeLabels"] = tmeLabels
+	if len(aliases) > 0 {
+		props["aliases"] = aliases
 	}
 
 	var statement bytes.Buffer
@@ -136,7 +136,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		TradeNames        []string `json:"o.tradeNames"`
 		LocalNames        []string `json:"o.localNames"`
 		FormerNames       []string `json:"o.formerNames"`
-		TmeLabels         []string `json:"o.tmeLabels"`
+		Aliases           []string `json:"o.aliases"`
 		ParentOrgUUID     string   `json:"par.uuid"`
 		IndustryUUID      string   `json:"ind.uuid"`
 	}{}
@@ -145,7 +145,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
             OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
             RETURN o.uuid, o.properName, labels(o) AS type, o.factsetIdentifier, o.leiCode, o.legalName, o.shortName, o.hiddenLabel,
-            o.formerNames, o.tradeNames, o.localNames, o.tmeLabels, ind.uuid, par.uuid`,
+            o.formerNames, o.tradeNames, o.localNames, o.aliases, ind.uuid, par.uuid`,
 
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
@@ -174,7 +174,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		TradeNames:             result.TradeNames,
 		LocalNames:             result.LocalNames,
 		FormerNames:            result.FormerNames,
-		TmeLabels:              result.TmeLabels,
+		Aliases:                result.Aliases,
 		ParentOrganisation:     result.ParentOrgUUID,
 		IndustryClassification: result.IndustryUUID,
 	}
