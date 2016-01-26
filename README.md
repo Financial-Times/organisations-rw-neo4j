@@ -21,16 +21,20 @@ All arguments are optional, they default to a local Neo4j install on the default
 NB: the default batchSize is much higher than the throughput the instance data ingester currently can cope with.
 
 ## Updating the model
-Use gojson against a transformer endpoint to create a role struct and update the role/model.go file. NB: we DO need a separate identifier struct
 
-`curl http://<TODO>:8080/transformers/organisations/344fdb1d-0585-31f7-814f-b478e54dbe1f | gojson -name=organisation`
+We use the transformer to get the information to write and from that we establish the json for the request. This representation is held in the model.go in a struct called organisation.
+
+Use gojson against a transformer endpoint to create a organisation struct and update the organisation/model.go file. NB: we DO need a separate identifier struct
+
+`curl http://ftaps39403-law1a-eu-t:8080/transformers/organisations/344fdb1d-0585-31f7-814f-b478e54dbe1f | gojson -name=organisation`
 
 ## Building
 
 This service is built and deployed via Jenkins.
 
-<a href="<TODO>">Build job</a>
-<a href="<TODO>">Deploy job</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-build/">Build job</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-deploy-test/">Deploy to Test job</a>
+<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-deploy-prod/">Deploy to Prod job</a>
 
 The build works via git tags. To prepare a new release
 - update the version in /puppet/ft-organisations_rw_neo4j/Modulefile, e.g. to 0.0.12
@@ -40,7 +44,8 @@ The build works via git tags. To prepare a new release
 The deploy also works via git tag and you can also select the environment to deploy to.
 
 ## Endpoints
-/people/{uuid}
+/organisations/{uuid}
+
 ### PUT
 The only mandatory field is the uuid, and the uuid in the body must match the one used on the path.
 
@@ -53,7 +58,7 @@ We run queries in batches. If a batch fails, all failing requests will get a 500
 Invalid json body input, or uuids that don't match between the path and the body will result in a 400 bad request response.
 
 Example:
-`curl -XPUT -H "X-Request-Id: 123" -H "Content-Type: application/json" localhost:8080/organisations/3fa70485-3a57-3b9b-9449-774b001cd965 --data '{"uuid": "344fdb1d-0585-31f7-814f-b478e54dbe1f", "isBoardRole": true, "prefLabel": "Director/Board Member", "identifiers": [{"authority": "http://api.ft.com/system/FACTSET","identifierValue": "BRD"}]}'`
+`curl -XPUT -H "X-Request-Id: 123" -H "Content-Type: application/json" localhost:8080/organisations/3fa70485-3a57-3b9b-9449-774b001cd965 --data '{"uuid": "ecd7319d-92f1-3c0a-9912-0b91186bf27b", "type": "PublicCompany", "properName": "The E.W. Scripps Co.", "legalName": "The E. W. Scripps Company", "shortName": "The EW Scripps", "hiddenLabel": "EW SCRIPPS CO", "identifiers": [ { "authority": "http://api.ft.com/system/LEI", "identifierValue": "549300U1OW41QPKYW028" } ], "aliases": [ "EW Scripps Company", "E.W. Scripps", "Scripps", "EW Scripps Co", "E.W. Scripps Company", "Scripps Company", "EW Scripps", "The E.W. Scripps Company", "Scripps EW", "E.W. Scripps Co" ], "industryClassification": "3c980022-6253-324d-ba9f-abfb71e39bf3" }'`
 
 ### GET
 Thie internal read should return what got written (i.e., there isn't a public read for organisations and this is not intended to ever be public either)
