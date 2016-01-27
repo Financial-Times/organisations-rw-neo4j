@@ -53,6 +53,7 @@ func TestWriteNewOrganisation(t *testing.T) {
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
@@ -60,7 +61,6 @@ func TestWriteNewOrganisation(t *testing.T) {
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
-	cleanDB(db, t, assert)
 }
 
 func TestWriteWillUpdateOrg(t *testing.T) {
@@ -68,6 +68,7 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	assert.NoError(cypherDriver.Write(minimalOrg))
 
@@ -89,7 +90,6 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
-	cleanDB(db, t, assert)
 }
 
 func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
@@ -97,6 +97,7 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	var oddCharOrg = organisation{
 		UUID:               oddCharOrgUuid,
@@ -116,7 +117,6 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)
 	assert.Equal(oddCharOrg, storedOrg, "organisations should be the same")
-	cleanDB(db, t, assert)
 }
 
 func TestReadOrganisation(t *testing.T) {
@@ -124,6 +124,7 @@ func TestReadOrganisation(t *testing.T) {
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
@@ -137,22 +138,21 @@ func TestReadOrganisation(t *testing.T) {
 func TestDeleteNothing(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnectionAndCheckClean(t, assert)
+	defer cleanDB(db, t, assert)
 
 	cypherDriver := getCypherDriver(db)
 	res, err := cypherDriver.Delete("4e484678-cf47-4168-b844-6adb47f8eb58")
 
 	assert.NoError(err)
 	assert.False(res)
-	cleanDB(db, t, assert)
 }
 
 func TestDeleteWithRelationships(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnection(t, assert)
-	cleanDB(db, t, assert)
-	checkDbClean(db, t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(fullOrg)
 	cypherDriver.Delete(fullOrgUuid)
@@ -161,16 +161,14 @@ func TestDeleteWithRelationships(t *testing.T) {
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
-	cleanDB(db, t, assert)
 }
 
 func TestDeleteNoRelationships(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnection(t, assert)
-	cleanDB(db, t, assert)
-	checkDbClean(db, t)
+	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(minimalOrg)
 	cypherDriver.Delete(minimalOrgUuid)
@@ -189,7 +187,21 @@ func TestDeleteNoRelationships(t *testing.T) {
 	err := db.Cypher(&getOrg)
 	assert.NoError(err)
 	assert.Empty(result)
-	cleanDB(db, t, assert)
+}
+
+func TestCount(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+
+	cypherDriver.Write(minimalOrg)
+	cypherDriver.Write(fullOrg)
+
+	count, err := cypherDriver.Count()
+	assert.NoError(err)
+	assert.Equal(3, count) // Three as full org has a parent org
 }
 
 func checkDbClean(db *neoism.Database, t *testing.T) {

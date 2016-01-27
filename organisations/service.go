@@ -101,7 +101,7 @@ func (cd service) Write(thing interface{}) error {
 	statement.WriteString(`MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept:Thing
 					SET o={props} `)
-	statement.WriteString("SET o:" + o.Type.String())
+	statement.WriteString("SET o:" + o.Type.String() + " ")
 	if o.IndustryClassification != "" {
 		statement.WriteString("MERGE (ic:Thing{uuid:'" + o.IndustryClassification + "'}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ")
 	}
@@ -251,11 +251,13 @@ func (s service) Check() error {
 	return neoutils.Check(s.cypherRunner)
 }
 
+type countResult []struct {
+	Count int `json:"c"`
+}
+
 func (s service) Count() (int, error) {
 
-	results := []struct {
-		Count int `json:"c"`
-	}{}
+	results := countResult{}
 
 	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{&neoism.CypherQuery{
 		Statement: `MATCH (n:Organisation) return count(n) as c`,

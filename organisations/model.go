@@ -24,14 +24,17 @@ type identifier struct {
 }
 
 func (o OrgType) String() string {
-	if o == Organisation {
-		return "Organisation:Concept:Thing "
-	} else if o == Company {
-		return "Company:Organisation:Concept:Thing "
-	} else if o == PublicCompany {
-		return "PublicCompany:Company:Organisation:Concept:Thing "
+
+	switch o {
+	case Organisation:
+		return "Organisation:Concept:Thing"
+	case Company:
+		return "Company:Organisation:Concept:Thing"
+	case PublicCompany:
+		return "PublicCompany:Company:Organisation:Concept:Thing"
+	default:
+		return "Thing"
 	}
-	return "Thing"
 }
 
 const (
