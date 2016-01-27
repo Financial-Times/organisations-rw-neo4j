@@ -4,7 +4,7 @@ class organisations_rw_neo4j {
 
   class { "go_service_profile" :
     service_module => $module_name,
-    service_name => "$module_name",
+    service_name => "organisations-rw-neo4j",
     configParameters => $configParameters
   }
 }
