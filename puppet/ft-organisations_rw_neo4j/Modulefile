@@ -10,3 +10,4 @@ project_page 'UNKNOWN'
 ## Add dependencies, if any:
 dependency 'ft/common_pp_up', '1.0.x'
 dependency 'ft/satellitesubscribe', '0.0.x'
+dependency 'ft/go_service_profile version', '0.0.x'
