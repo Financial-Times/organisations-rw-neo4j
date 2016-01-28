@@ -220,7 +220,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 
 	qs := []*neoism.CypherQuery{
 		clearNode,
-		&neoism.CypherQuery{
+		{
 			Statement: `
 		MATCH (org:Thing {uuid: {uuid}})
 		OPTIONAL MATCH (org)-[a]-(x) WITH org, count(a) AS relCount WHERE relCount = 0
@@ -259,7 +259,7 @@ func (s service) Count() (int, error) {
 
 	results := countResult{}
 
-	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{&neoism.CypherQuery{
+	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
 		Statement: `MATCH (n:Organisation) return count(n) as c`,
 		Result:    &results,
 	}})

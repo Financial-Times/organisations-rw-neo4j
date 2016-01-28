@@ -245,19 +245,19 @@ func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Data
 
 func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 	qs := []*neoism.CypherQuery{
-		&neoism.CypherQuery{
+		{
 			Statement: `
 		MATCH (org:Thing {uuid: '4e484678-cf47-4168-b844-6adb47f8eb58'}) DETACH DELETE org
 	`},
-		&neoism.CypherQuery{
+		{
 			Statement: `
 		MATCH (p:Thing {uuid: 'de38231e-e481-4958-b470-e124b2ef5a34'}) DETACH DELETE p
 	`},
-		&neoism.CypherQuery{
+		{
 			Statement: `
 		MATCH (ind:Thing {uuid: 'c3d17865-f9d1-42f2-9ca2-4801cb5aacc0'}) DETACH DELETE ind
 	`},
-		&neoism.CypherQuery{
+		{
 			Statement: `
 		MATCH (morg:Thing {uuid: '33f93f25-3301-417e-9b20-50b27d215617'}) DETACH DELETE morg
 	`},
