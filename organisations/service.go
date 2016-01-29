@@ -163,13 +163,13 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 func addType(orgType *OrgType, types *[]string) {
 	i := len(*types)
 	if i == 3 {
-		*orgType = Organisation
+		*orgType = TypeOrganisation
 	}
 	if i == 4 {
-		*orgType = Company
+		*orgType = TypeCompany
 	}
 	if i == 5 {
-		*orgType = PublicCompany
+		*orgType = TypePublicCompany
 	}
 }
 

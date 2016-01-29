@@ -1,52 +1,12 @@
 package organisations
 
 import (
-	"os"
-	"testing"
-
 	"github.com/Financial-Times/neo-utils-go"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"testing"
 )
-
-const (
-	fullOrgUuid    = "4e484678-cf47-4168-b844-6adb47f8eb58"
-	minimalOrgUuid = "33f93f25-3301-417e-9b20-50b27d215617"
-	oddCharOrgUuid = "161403e2-074f-3c82-9328-0337e909ac8c"
-)
-
-var fsIdentifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "identifierValue",
-}
-
-var leiCodeIdentifier = identifier{
-	Authority:       leiIdentifier,
-	IdentifierValue: "leiCodeIdentifier",
-}
-
-var fullOrg = organisation{
-	UUID:                   fullOrgUuid,
-	Type:                   PublicCompany,
-	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier},
-	ProperName:             "Proper Name",
-	LegalName:              "Legal Name",
-	ShortName:              "Short Name",
-	HiddenLabel:            "Hidden Label",
-	FormerNames:            []string{"Old Name, inc.", "Older Name, inc."},
-	TradeNames:             []string{"Old Trade Name, inc.", "Older Trade Name, inc."},
-	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
-	Aliases:                []string{"alias1", "alias2", "alias3"},
-	ParentOrganisation:     "de38231e-e481-4958-b470-e124b2ef5a34",
-	IndustryClassification: "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0",
-}
-
-var minimalOrg = organisation{
-	UUID:        minimalOrgUuid,
-	Type:        Organisation,
-	Identifiers: []identifier{fsIdentifier},
-	ProperName:  "Proper Name",
-}
 
 func TestWriteNewOrganisation(t *testing.T) {
 	assert := assert.New(t)
@@ -55,9 +15,9 @@ func TestWriteNewOrganisation(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(FullOrg))
 
-	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, _, err := cypherDriver.Read(FullOrgUuid)
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
@@ -70,23 +30,23 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(MinimalOrg))
 
-	storedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedOrg, _, _ := cypherDriver.Read(MinimalOrgUuid)
 
 	assert.Empty(storedOrg.(organisation).HiddenLabel, "Minimal org should not have a hidden label value.")
 
 	updatedOrg := organisation{
-		UUID:        minimalOrgUuid,
-		Type:        Organisation,
-		Identifiers: []identifier{fsIdentifier},
+		UUID:        MinimalOrgUuid,
+		Type:        TypeOrganisation,
+		Identifiers: []identifier{FsIdentifier},
 		ProperName:  "Updated Name",
 		HiddenLabel: "No longer hidden",
 	}
 
 	assert.NoError(cypherDriver.Write(updatedOrg))
 
-	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(MinimalOrgUuid)
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
@@ -100,10 +60,10 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	var oddCharOrg = organisation{
-		UUID:               oddCharOrgUuid,
-		Type:               Company,
+		UUID:               OddCharOrgUuid,
+		Type:               TypeCompany,
 		ProperName:         "TBWA\\Paling Walters Ltd.",
-		Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
+		Identifiers:        []identifier{FsIdentifier, LeiCodeIdentifier},
 		ParentOrganisation: "5852ca0f-f254-3002-b05c-d64a354a661e",
 		ShortName:          "TBWA\\Paling Walters",
 		FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
@@ -112,10 +72,10 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(oddCharOrg))
 
-	storedOrg, found, err := cypherDriver.Read(oddCharOrgUuid)
+	storedOrg, found, err := cypherDriver.Read(OddCharOrgUuid)
 
-	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
-	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)
+	assert.NoError(err, "Error finding organisation for uuid %s", OddCharOrgUuid)
+	assert.True(found, "Didn't find organisation for uuid %s", OddCharOrgUuid)
 	assert.Equal(oddCharOrg, storedOrg, "organisations should be the same")
 }
 
@@ -126,13 +86,13 @@ func TestReadOrganisation(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(FullOrg))
 
-	storedOrg, found, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, found, err := cypherDriver.Read(FullOrgUuid)
 
-	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUuid)
-	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUuid)
-	assert.Equal(fullOrg, storedOrg, "organisations should be the same")
+	assert.NoError(err, "Error finding organisation for uuid %s", FullOrgUuid)
+	assert.True(found, "Didn't find organisation for uuid %s", FullOrgUuid)
+	assert.Equal(FullOrg, storedOrg, "organisations should be the same")
 }
 
 func TestDeleteNothing(t *testing.T) {
@@ -154,10 +114,10 @@ func TestDeleteWithRelationships(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(fullOrg)
-	cypherDriver.Delete(fullOrgUuid)
+	cypherDriver.Write(FullOrg)
+	cypherDriver.Delete(FullOrgUuid)
 
-	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, _, err := cypherDriver.Read(FullOrgUuid)
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
@@ -170,8 +130,8 @@ func TestDeleteNoRelationships(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(minimalOrg)
-	cypherDriver.Delete(minimalOrgUuid)
+	cypherDriver.Write(MinimalOrg)
+	cypherDriver.Delete(MinimalOrgUuid)
 
 	result := []struct {
 		Uuid string `json:"t.uuid"`
@@ -196,8 +156,8 @@ func TestCount(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(minimalOrg)
-	cypherDriver.Write(fullOrg)
+	cypherDriver.Write(MinimalOrg)
+	cypherDriver.Write(FullOrg)
 
 	count, err := cypherDriver.Count()
 	assert.NoError(err)

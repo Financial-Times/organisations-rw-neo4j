@@ -26,11 +26,11 @@ type identifier struct {
 func (o OrgType) String() string {
 
 	switch o {
-	case Organisation:
+	case TypeOrganisation:
 		return "Organisation:Concept:Thing"
-	case Company:
+	case TypeCompany:
 		return "Company:Organisation:Concept:Thing"
-	case PublicCompany:
+	case TypePublicCompany:
 		return "PublicCompany:Company:Organisation:Concept:Thing"
 	default:
 		return "Thing"
@@ -38,7 +38,9 @@ func (o OrgType) String() string {
 }
 
 const (
-	PublicCompany OrgType = "PublicCompany"
-	Company       OrgType = "Company"
-	Organisation  OrgType = "Organisation"
+	FsAuthority               = "http://api.ft.com/system/FACTSET-EDM"
+	LeiIdentifier             = "http://api.ft.com/system/LEI"
+	TypePublicCompany OrgType = "PublicCompany"
+	TypeCompany       OrgType = "Company"
+	TypeOrganisation  OrgType = "Organisation"
 )
