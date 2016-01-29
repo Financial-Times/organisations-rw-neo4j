@@ -2,8 +2,8 @@ package organisations
 
 import (
 	"bytes"
-
 	"encoding/json"
+	"fmt"
 
 	"github.com/Financial-Times/neo-cypher-runner-go"
 	"github.com/Financial-Times/neo-utils-go"
@@ -72,11 +72,32 @@ func (cd service) Write(thing interface{}) error {
 	setListProps(&props, &o.TradeNames, "tradeNames")
 	setListProps(&props, &o.Aliases, "aliases")
 
+	deleteEntityRelationshipsQuery := &neoism.CypherQuery{
+		Statement: `MATCH (o:Thing {uuid:{uuid}})
+					OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
+					OPTIONAL MATCH (o)-[soo:SUB_ORGANISATION_OF]->(p)
+					DELETE hc, soo`,
+		Parameters: map[string]interface{}{
+			"uuid": o.UUID,
+		},
+	}
+
+	// fmt.Printf("Delete rels query: ", deleteEntityRelationshipsQuery)
+
+	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery}
+
 	var statement bytes.Buffer
 	statement.WriteString(`MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept:Thing
 					SET o={props} `)
-	statement.WriteString("SET o:" + o.Type.String() + " ")
+
+	err, stringType := o.Type.String()
+	if err == nil {
+		statement.WriteString("SET o:" + stringType + " ")
+	} else {
+		return err
+	}
+
 	if o.IndustryClassification != "" {
 		statement.WriteString("MERGE (ic:Thing{uuid:'" + o.IndustryClassification + "'}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ")
 	}
@@ -85,7 +106,7 @@ func (cd service) Write(thing interface{}) error {
 		statement.WriteString("MERGE (p:Thing{uuid:'" + o.ParentOrganisation + "'}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ")
 	}
 
-	query := &neoism.CypherQuery{
+	writeQuery := &neoism.CypherQuery{
 		Statement: statement.String(),
 		Parameters: map[string]interface{}{
 			"uuid":  o.UUID,
@@ -93,7 +114,10 @@ func (cd service) Write(thing interface{}) error {
 		},
 	}
 
-	queries := []*neoism.CypherQuery{query}
+	// fmt.Printf("Write Query:", writeQuery)
+	queries = append(queries, writeQuery)
+
+	fmt.Printf("Full Query:", queries)
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
@@ -116,7 +140,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		IndustryUUID      string   `json:"ind.uuid"`
 	}{}
 
-	query := &neoism.CypherQuery{
+	readQuery := &neoism.CypherQuery{
 		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
             OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
             RETURN o.uuid, o.properName, labels(o) AS type, o.factsetIdentifier, o.leiCode, o.legalName, o.shortName, o.hiddenLabel,
@@ -128,7 +152,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		Result: &results,
 	}
 
-	if err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query}); err != nil || len(results) == 0 {
+	if err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{readQuery}); err != nil || len(results) == 0 {
 		return organisation{}, false, err
 	}
 

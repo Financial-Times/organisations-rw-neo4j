@@ -1,5 +1,7 @@
 package organisations
 
+import "errors"
+
 type OrgType string
 
 type organisation struct {
@@ -23,17 +25,17 @@ type identifier struct {
 	IdentifierValue string `json:"identifierValue"`
 }
 
-func (o OrgType) String() string {
+func (o OrgType) String() (error, string) {
 
 	switch o {
 	case Organisation:
-		return "Organisation:Concept:Thing"
+		return nil, "Organisation:Concept:Thing"
 	case Company:
-		return "Company:Organisation:Concept:Thing"
+		return nil, "Company:Organisation:Concept:Thing"
 	case PublicCompany:
-		return "PublicCompany:Company:Organisation:Concept:Thing"
+		return nil, "PublicCompany:Company:Organisation:Concept:Thing"
 	default:
-		return "Thing"
+		return errors.New("Dissalowed Type"), ""
 	}
 }
 

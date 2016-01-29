@@ -19,6 +19,7 @@ func main() {
 	log.Println("Application started with args %s", os.Args)
 	app := cli.App("organisations-rw-neo4j", "A RESTful API for managing Organisations in neo4j")
 	neoURL := app.StringOpt("neo-url", "http://localhost:7474/db/data", "neo4j endpoint URL")
+	// neoURL := app.StringOpt("neo-url", "http://ftper58827-law1b-eu-t:8080/db/data", "neo4j endpoint URL")
 	port := app.IntOpt("port", 8080, "Port to listen on")
 	batchSize := app.IntOpt("batchSize", 1024, "Maximum number of statements to execute per batch")
 	graphiteTCPAddress := app.StringOpt("graphiteTCPAddress", "",
