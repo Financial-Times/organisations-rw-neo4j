@@ -26,6 +26,24 @@ func (cd service) Initialise() error {
 		"Organisation": "uuid"})
 }
 
+func setProps(props *map[string]interface{}, item *string, propName string) {
+	if *item != "" {
+		(*props)[propName] = *item
+	}
+}
+
+func setListProps(props *map[string]interface{}, itemList *[]string, propName string) {
+	var items []string
+
+	for _, item := range *itemList {
+		items = append(items, item)
+	}
+
+	if len(items) > 0 {
+		(*props)[propName] = items
+	}
+}
+
 //Write - Writes an Organisation node
 func (cd service) Write(thing interface{}) error {
 	o := thing.(organisation)
@@ -36,17 +54,9 @@ func (cd service) Write(thing interface{}) error {
 		"prefLabel":  o.ProperName,
 	}
 
-	if o.LegalName != "" {
-		props["legalName"] = o.LegalName
-	}
-
-	if o.ShortName != "" {
-		props["shortName"] = o.ShortName
-	}
-
-	if o.HiddenLabel != "" {
-		props["hiddenLabel"] = o.HiddenLabel
-	}
+	setProps(&props, &o.LegalName, "legalName")
+	setProps(&props, &o.ShortName, "shortName")
+	setProps(&props, &o.HiddenLabel, "hiddenLabel")
 
 	for _, identifier := range o.Identifiers {
 		if identifier.Authority == fsAuthority {
@@ -57,45 +67,10 @@ func (cd service) Write(thing interface{}) error {
 		}
 	}
 
-	var formerNames []string
-
-	for _, formerName := range o.FormerNames {
-		formerNames = append(formerNames, formerName)
-	}
-
-	if len(formerNames) > 0 {
-		props["formerNames"] = formerNames
-	}
-
-	var localNames []string
-
-	for _, localName := range o.LocalNames {
-		localNames = append(localNames, localName)
-	}
-
-	if len(localNames) > 0 {
-		props["localNames"] = localNames
-	}
-
-	var tradeNames []string
-
-	for _, tradeName := range o.TradeNames {
-		tradeNames = append(tradeNames, tradeName)
-	}
-
-	if len(tradeNames) > 0 {
-		props["tradeNames"] = tradeNames
-	}
-
-	var aliases []string
-
-	for _, alias := range o.Aliases {
-		aliases = append(aliases, alias)
-	}
-
-	if len(aliases) > 0 {
-		props["aliases"] = aliases
-	}
+	setListProps(&props, &o.FormerNames, "formerNames")
+	setListProps(&props, &o.LocalNames, "localNames")
+	setListProps(&props, &o.TradeNames, "tradeNames")
+	setListProps(&props, &o.Aliases, "aliases")
 
 	var statement bytes.Buffer
 	statement.WriteString(`MERGE (o:Thing {uuid: {uuid}})
@@ -153,14 +128,8 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		Result: &results,
 	}
 
-	err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
-
-	if err != nil {
+	if err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query}); err != nil || len(results) == 0 {
 		return organisation{}, false, err
-	}
-
-	if len(results) == 0 {
-		return organisation{}, false, nil
 	}
 
 	result := results[0]
@@ -179,30 +148,36 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		IndustryClassification: result.IndustryUUID,
 	}
 
-	i := len(result.Type)
-	if i == 3 {
-		o.Type = Organisation
-	}
-	if i == 4 {
-		o.Type = Company
-	}
-	if i == 5 {
-		o.Type = PublicCompany
-	}
-
-	if result.FactsetIdentifier != "" {
-		o.Identifiers = append(o.Identifiers, identifier{fsAuthority, result.FactsetIdentifier})
-	}
-
-	if result.LeiCode != "" {
-		o.Identifiers = append(o.Identifiers, identifier{leiIdentifier, result.LeiCode})
-	}
+	addType(&o.Type, &result.Type)
 
 	if result.FactsetIdentifier == "" && result.LeiCode == "" {
 		o.Identifiers = make([]identifier, 0, 0)
+	} else {
+		addIdentifier(&o.Identifiers, &result.FactsetIdentifier, fsAuthority)
+		addIdentifier(&o.Identifiers, &result.LeiCode, leiIdentifier)
 	}
 
 	return o, true, nil
+}
+
+func addType(orgType *OrgType, types *[]string) {
+	i := len(*types)
+	if i == 3 {
+		*orgType = Organisation
+	}
+	if i == 4 {
+		*orgType = Company
+	}
+	if i == 5 {
+		*orgType = PublicCompany
+	}
+}
+
+func addIdentifier(identifiers *[]identifier, result *string, code string) {
+
+	if *result != "" {
+		(*identifiers) = append(*identifiers, identifier{code, *result})
+	}
 }
 
 //Delete - Deletes an Organisation
