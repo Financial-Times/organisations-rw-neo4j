@@ -35,7 +35,7 @@ func (o OrgType) String() (error, string) {
 	case PublicCompany:
 		return nil, "PublicCompany:Company:Organisation:Concept:Thing"
 	default:
-		return errors.New("Dissalowed Type"), ""
+		return errors.New("This type is not supported yet. Only 'Organisation', 'Company' or 'PublicCompany' and these types must be allocated to a 'type' json property"), ""
 	}
 }
 
