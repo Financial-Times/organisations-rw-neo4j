@@ -21,6 +21,7 @@ func main() {
 	neoURL := app.StringOpt("neo-url", "http://localhost:7474/db/data", "neo4j endpoint URL")
 	// neoURL := app.StringOpt("neo-url", "http://ftper58827-law1b-eu-t:8080/db/data", "neo4j endpoint URL")
 	port := app.IntOpt("port", 8080, "Port to listen on")
+	env := app.StringOpt("env", "local", "environment this app is running in")
 	batchSize := app.IntOpt("batchSize", 1024, "Maximum number of statements to execute per batch")
 	graphiteTCPAddress := app.StringOpt("graphiteTCPAddress", "",
 		"Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)")
@@ -50,8 +51,10 @@ func main() {
 
 		baseftrwapp.RunServer(engs,
 			v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...),
-			*port)
+			*port, "organisations-rw-neo4j", *env)
 	}
+	log.SetLevel(log.InfoLevel)
+	log.Println("Application started with args %s", os.Args)
 
 	app.Run(os.Args)
 }
