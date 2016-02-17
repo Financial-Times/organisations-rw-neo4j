@@ -25,10 +25,20 @@ var leiCodeIdentifier = identifier{
 	IdentifierValue: "leiCodeIdentifier",
 }
 
+var tmeCodeIdentifier = identifier{
+	Authority:       tmeAuthority,
+	IdentifierValue: "tmeCodeIdentifier",
+}
+
+var tme2CodeIdentifier = identifier{
+	Authority:       tmeAuthority,
+	IdentifierValue: "tme2CodeIdentifier",
+}
+
 var fullOrg = organisation{
 	UUID:                   fullOrgUuid,
 	Type:                   PublicCompany,
-	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier},
+	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier, tme2CodeIdentifier, tmeCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
 	ShortName:              "Short Name",

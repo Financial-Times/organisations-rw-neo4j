@@ -58,6 +58,8 @@ func (cd service) Write(thing interface{}) error {
 	setProps(&props, &o.ShortName, "shortName")
 	setProps(&props, &o.HiddenLabel, "hiddenLabel")
 
+	var tmeIdentifiers []string
+
 	for _, identifier := range o.Identifiers {
 		if identifier.Authority == fsAuthority {
 			props["factsetIdentifier"] = identifier.IdentifierValue
@@ -65,6 +67,13 @@ func (cd service) Write(thing interface{}) error {
 		if identifier.Authority == leiIdentifier {
 			props["leiCode"] = identifier.IdentifierValue
 		}
+		if identifier.Authority == tmeAuthority {
+			tmeIdentifiers = append(tmeIdentifiers, identifier.IdentifierValue)
+		}
+	}
+
+	if len(tmeIdentifiers) > 0 {
+		props["tmeIdentifiers"] = tmeIdentifiers
 	}
 
 	setListProps(&props, &o.FormerNames, "formerNames")
@@ -131,6 +140,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		ShortName         string   `json:"o.shortName"`
 		HiddenLabel       string   `json:"o.hiddenLabel"`
 		FactsetIdentifier string   `json:"o.factsetIdentifier"`
+		TMEIdentifiers    []string `json:"tmeIdentifiers"`
 		LeiCode           string   `json:"o.leiCode"`
 		TradeNames        []string `json:"o.tradeNames"`
 		LocalNames        []string `json:"o.localNames"`
@@ -143,7 +153,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	readQuery := &neoism.CypherQuery{
 		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
             OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
-            RETURN o.uuid, o.properName, labels(o) AS type, o.factsetIdentifier, o.leiCode, o.legalName, o.shortName, o.hiddenLabel,
+            RETURN o.uuid, o.properName, labels(o) AS type, o.factsetIdentifier, o.tmeIdentifiers, o.leiCode, o.legalName, o.shortName, o.hiddenLabel,
             o.formerNames, o.tradeNames, o.localNames, o.aliases, ind.uuid, par.uuid`,
 
 		Parameters: map[string]interface{}{
@@ -174,13 +184,20 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 
 	addType(&o.Type, &result.Type)
 
-	if result.FactsetIdentifier == "" && result.LeiCode == "" {
-		o.Identifiers = make([]identifier, 0, 0)
-	} else {
+	if result.FactsetIdentifier != "" {
 		addIdentifier(&o.Identifiers, &result.FactsetIdentifier, fsAuthority)
+	}
+	if result.LeiCode != "" {
 		addIdentifier(&o.Identifiers, &result.LeiCode, leiIdentifier)
 	}
 
+	for _, tmeValue := range result.TMEIdentifiers {
+		o.Identifiers = append(o.Identifiers, identifier{tmeAuthority, tmeValue})
+	}
+
+	/*if result.FactsetIdentifier == "" && result.LeiCode == "" &&  len(result.TMEIdentifiers)==0{
+		o.Identifiers = make([]identifier, 0, 0)
+	}*/
 	return o, true, nil
 }
 
@@ -280,4 +297,5 @@ func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 const (
 	fsAuthority   = "http://api.ft.com/system/FACTSET-EDM"
 	leiIdentifier = "http://api.ft.com/system/LEI"
+	tmeAuthority  = "http://api.ft.com/system/TME"
 )
