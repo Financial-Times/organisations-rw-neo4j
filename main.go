@@ -17,7 +17,7 @@ import (
 
 func main() {
 	log.Infof("Application starting with args %s", os.Args)
-	app := cli.App("roles-rw-neo4j", "A RESTful API for managing Roles in neo4j")
+	app := cli.App("roles-rw-neo4j", "A RESTful API for managing Memebership Roles in neo4j")
 	neoURL := app.StringOpt("neo-url", "http://localhost:7474/db/data", "neo4j endpoint URL")
 	port := app.IntOpt("port", 8080, "Port to listen on")
 	env := app.StringOpt("env", "local", "environment this app is running in")
