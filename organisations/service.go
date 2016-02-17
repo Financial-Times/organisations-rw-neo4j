@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/Financial-Times/neo-cypher-runner-go"
-	"github.com/Financial-Times/neo-utils-go"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 )
 
