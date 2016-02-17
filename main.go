@@ -6,7 +6,6 @@ import (
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/Financial-Times/neo-cypher-runner-go/neocypherrunner"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
 	log "github.com/Sirupsen/logrus"
@@ -59,7 +58,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func makeCheck(service baseftrwapp.Service, cr neocypherrunner.CypherRunner) v1a.Check {
+func makeCheck(service baseftrwapp.Service, cr neoutils.CypherRunner) v1a.Check {
 	return v1a.Check{
 		BusinessImpact:   "Cannot read/write organisations via this writer",
 		Name:             "Check connectivity to Neo4j - neoUrl is a parameter in hieradata for this service",

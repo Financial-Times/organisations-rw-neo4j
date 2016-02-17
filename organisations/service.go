@@ -4,18 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
-	"github.com/Financial-Times/neo-cypher-runner-go/neocypherrunner"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 )
 
 type service struct {
-	cypherRunner neocypherrunner.CypherRunner
+	cypherRunner neoutils.CypherRunner
 	indexManager neoutils.IndexManager
 }
 
-func NewCypherOrganisationService(cypherRunner neocypherrunner.CypherRunner, indexManager neoutils.IndexManager) service {
+func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) service {
 	return service{cypherRunner, indexManager}
 }
 
