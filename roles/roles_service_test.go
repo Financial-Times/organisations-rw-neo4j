@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Financial-Times/base-ft-rw-app-go"
+	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/neo-utils-go"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
