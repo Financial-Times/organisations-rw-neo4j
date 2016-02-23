@@ -87,7 +87,7 @@ func (cd service) Write(thing interface{}) error {
 	for _, identifier := range o.Identifiers {
 
 		if identifierLabels[identifier.Authority] == "" {
-			return fmt.Errorf("This identifier type- %v, is not supported yet. Only Factset, LEI and TME are currently supported", identifier.Authority)
+			return fmt.Errorf("This identifier type- %v, is not supported. Only FACTSET_EDM, LEI and FT-TME are currently supported", identifier.Authority)
 		}
 		addIdentfierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
 		queries = append(queries, addIdentfierQuery)
@@ -208,7 +208,6 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 
 func addType(orgType *OrgType, types *[]string) {
 	i := len(*types)
-	fmt.Printf("LENGTH %v+", i)
 	if i == 3 {
 		*orgType = Organisation
 	}
