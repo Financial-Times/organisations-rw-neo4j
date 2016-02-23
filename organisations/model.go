@@ -1,8 +1,11 @@
 package organisations
 
 import "errors"
+import "sort"
 
 type OrgType string
+
+type SortedIdentifiers []identifier
 
 type organisation struct {
 	UUID                   string       `json:"uuid"`
@@ -23,6 +26,28 @@ type organisation struct {
 type identifier struct {
 	Authority       string `json:"authority"`
 	IdentifierValue string `json:"identifierValue"`
+}
+
+func sortIdentifiers(iden []identifier) {
+	sort.Sort(SortedIdentifiers(iden))
+}
+
+// these three are the implementation of sort interface
+func (si SortedIdentifiers) Len() int {
+	return len(si)
+}
+
+func (si SortedIdentifiers) Swap(i, j int) {
+	si[i], si[j] = si[j], si[i]
+}
+
+func (si SortedIdentifiers) Less(i, j int) bool {
+
+	if si[i].Authority == si[j].Authority {
+		return si[i].IdentifierValue < si[j].IdentifierValue
+	} else {
+		return si[i].Authority < si[j].Authority
+	}
 }
 
 func (o OrgType) String() (error, string) {

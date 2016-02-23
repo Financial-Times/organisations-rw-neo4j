@@ -1,11 +1,13 @@
 package organisations
 
 import (
-	"os"
-	"testing"
+	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"reflect"
+	"testing"
 )
 
 const (
@@ -20,14 +22,20 @@ var fsIdentifier = identifier{
 }
 
 var leiCodeIdentifier = identifier{
-	Authority:       leiIdentifier,
+	Authority:       leiAuthority,
 	IdentifierValue: "leiCodeIdentifier",
 }
 
+var tmeIdentifier = identifier{
+	Authority:       tmeAuthority,
+	IdentifierValue: "tmeIdentifier",
+}
+
 var fullOrg = organisation{
-	UUID:                   fullOrgUuid,
-	Type:                   PublicCompany,
-	Identifiers:            []identifier{fsIdentifier, leiCodeIdentifier},
+	UUID: fullOrgUuid,
+	Type: PublicCompany,
+	//identifiers are in the expected read order
+	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
 	ShortName:              "Short Name",
@@ -60,6 +68,33 @@ func TestWriteNewOrganisation(t *testing.T) {
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
+}
+
+func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+
+	var unsupporterIdentifier = identifier{
+		Authority:       "unsupported",
+		IdentifierValue: "leiCodeIdentifier",
+	}
+	var testOrg = organisation{
+		UUID:        "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc",
+		Type:        Organisation,
+		Identifiers: []identifier{fsIdentifier, unsupporterIdentifier},
+		ProperName:  "Proper Name",
+	}
+
+	assert.Error(cypherDriver.Write(testOrg))
+
+	storedOrg, _, err := cypherDriver.Read("3166b06b-a7a7-40f7-bcb1-a13dc3e478dc")
+
+	assert.NoError(err)
+	assert.Equal(storedOrg, organisation{})
+
 }
 
 func TestWriteWillUpdateOrg(t *testing.T) {
@@ -115,7 +150,7 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)
-	assert.Equal(oddCharOrg, storedOrg, "organisations should be the same")
+	assert.True(reflect.DeepEqual(oddCharOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
 }
 
 func TestReadOrganisation(t *testing.T) {
@@ -131,7 +166,7 @@ func TestReadOrganisation(t *testing.T) {
 
 	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUuid)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUuid)
-	assert.Equal(fullOrg, storedOrg, "organisations should be the same")
+	assert.True(reflect.DeepEqual(fullOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
 }
 
 func TestDeleteNothing(t *testing.T) {
@@ -188,8 +223,7 @@ func TestDeleteNoRelationships(t *testing.T) {
 	assert.Empty(result)
 }
 
-//will this pass against a local?
-/*func TestCount(t *testing.T) {
+func TestCount(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
@@ -201,8 +235,8 @@ func TestDeleteNoRelationships(t *testing.T) {
 
 	count, err := cypherDriver.Count()
 	assert.NoError(err)
-	assert.Equal(3, count) // Three as full org has a parent org
-}*/
+	assert.Equal(2, count)
+}
 
 func checkDbClean(db *neoism.Database, t *testing.T) {
 	assert := assert.New(t)
@@ -260,6 +294,14 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 		{
 			Statement: `
 		MATCH (morg:Thing {uuid: '33f93f25-3301-417e-9b20-50b27d215617'}) DETACH DELETE morg
+	`},
+		{
+			Statement: `
+		MATCH (morg:Thing {uuid: '3166b06b-a7a7-40f7-bcb1-a13dc3e478dc'}) DETACH DELETE morg
+	`},
+		{
+			Statement: `
+		MATCH (morg:Thing {uuid: '161403e2-074f-3c82-9328-0337e909ac8c'}) DETACH DELETE morg
 	`},
 	}
 
