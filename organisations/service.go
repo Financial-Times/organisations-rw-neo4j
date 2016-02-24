@@ -1,7 +1,6 @@
 package organisations
 
 import (
-	//"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -74,8 +73,6 @@ func (cd service) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery}
 
-	//	var statement bytes.Buffer
-
 	resetOrgQuery := &neoism.CypherQuery{
 		Statement: `MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept
@@ -111,7 +108,7 @@ func (cd service) Write(thing interface{}) error {
 			},
 		}
 		queries = append(queries, setTypeQuery)
-		//	statement.WriteString("MERGE (o:Thing {uuid: {uuid}}) SET o:" + stringType + " ")
+
 	} else {
 		return err
 	}
@@ -126,8 +123,6 @@ func (cd service) Write(thing interface{}) error {
 			},
 		}
 		queries = append(queries, industryClassQuery)
-
-		//statement.WriteString("MERGE (ic:Thing{uuid:'" + o.IndustryClassification + "'}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ")
 	}
 
 	if o.ParentOrganisation != "" {
@@ -139,21 +134,7 @@ func (cd service) Write(thing interface{}) error {
 			},
 		}
 		queries = append(queries, parentQuery)
-
-		//statement.WriteString("MERGE (p:Thing{uuid:'" + o.ParentOrganisation + "'}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p)  ")
 	}
-
-	/*writeQuery := &neoism.CypherQuery{
-		Statement: statement.String(),
-		Parameters: map[string]interface{}{
-			"uuid":  o.UUID,
-			"props": props,
-		},
-	}*/
-
-	//fmt.Printf("Write Query:", writeQuery.Statement)
-	//queries = append(queries, writeQuery)
-
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
