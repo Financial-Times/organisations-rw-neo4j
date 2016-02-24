@@ -21,7 +21,8 @@ func (cd service) Initialise() error {
 	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
 		"Thing":        "uuid",
 		"Concept":      "uuid",
-		"Organisation": "uuid"})
+		"Organisation": "uuid",
+		"Identifier":   "value"})
 }
 
 func setProps(props *map[string]interface{}, item *string, propName string) {
@@ -196,10 +197,9 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	}
 
 	addType(&o.Type, &result.Type)
+	sortIdentifiers(o.Identifiers)
 
-	if len(o.Identifiers) > 0 {
-		sortIdentifiers(o.Identifiers)
-	} else {
+	if len(o.Identifiers) == 0 {
 		o.Identifiers = make([]identifier, 0, 0)
 	}
 
@@ -224,9 +224,9 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
-			OPTIONAL MATCH (p)<-[:IDENTIFIES]-(i:Identifier)
+			OPTIONAL MATCH (p)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE org:Concept:Organisation:Company:PublicCompany
-			DETACH DELETE i
+			DELETE iden, i
 			SET org={ uuid: {uuid}}
 		`,
 		Parameters: map[string]interface{}{
