@@ -1,7 +1,6 @@
 package organisations
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -74,11 +73,16 @@ func (cd service) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery}
 
-	var statement bytes.Buffer
-
-	statement.WriteString(`MERGE (o:Thing {uuid: {uuid}})
-					REMOVE o:PublicCompany:Company:Organisation:Concept:Thing
-					SET o={props} `)
+	resetOrgQuery := &neoism.CypherQuery{
+		Statement: `MERGE (o:Thing {uuid: {uuid}})
+					REMOVE o:PublicCompany:Company:Organisation:Concept
+					SET o={props}`,
+		Parameters: map[string]interface{}{
+			"uuid":  o.UUID,
+			"props": props,
+		},
+	}
+	queries = append(queries, resetOrgQuery)
 
 	identifierLabels := map[string]string{
 		fsAuthority:  factsetIdentifierLabel,
@@ -96,30 +100,41 @@ func (cd service) Write(thing interface{}) error {
 
 	err, stringType := o.Type.String()
 	if err == nil {
-		statement.WriteString("SET o:" + stringType + " ")
+		setTypeStatement := fmt.Sprintf(`MERGE (o:Thing {uuid: {uuid}})  set o : %s `, stringType)
+		setTypeQuery := &neoism.CypherQuery{
+			Statement: setTypeStatement,
+			Parameters: map[string]interface{}{
+				"uuid": o.UUID,
+			},
+		}
+		queries = append(queries, setTypeQuery)
+
 	} else {
 		return err
 	}
 
 	if o.IndustryClassification != "" {
-		statement.WriteString("MERGE (ic:Thing{uuid:'" + o.IndustryClassification + "'}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ")
+
+		industryClassQuery := &neoism.CypherQuery{
+			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
+			Parameters: map[string]interface{}{
+				"uuid":    o.UUID,
+				"indUuid": o.IndustryClassification,
+			},
+		}
+		queries = append(queries, industryClassQuery)
 	}
 
 	if o.ParentOrganisation != "" {
-		statement.WriteString("MERGE (p:Thing{uuid:'" + o.ParentOrganisation + "'}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ")
+		parentQuery := &neoism.CypherQuery{
+			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
+			Parameters: map[string]interface{}{
+				"uuid":   o.UUID,
+				"paUuid": o.ParentOrganisation,
+			},
+		}
+		queries = append(queries, parentQuery)
 	}
-
-	writeQuery := &neoism.CypherQuery{
-		Statement: statement.String(),
-		Parameters: map[string]interface{}{
-			"uuid":  o.UUID,
-			"props": props,
-		},
-	}
-
-	//fmt.Printf("Write Query:", writeQuery.Statement)
-	queries = append(queries, writeQuery)
-
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
