@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
 	"github.com/jmcvetta/neoism"
+	"net/http"
 )
 
 func main() {
@@ -29,7 +30,8 @@ func main() {
 	logMetrics := app.BoolOpt("logMetrics", false, "Whether to log metrics. Set to true if running locally and you want metrics output")
 
 	app.Action = func() {
-		db, err := neoism.Connect(*neoURL)
+		db, err := neoism.Connect(neoURL)
+		db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
 		}
