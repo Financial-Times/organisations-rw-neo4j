@@ -31,7 +31,6 @@ func main() {
 
 	app.Action = func() {
 		db, err := neoism.Connect(*neoURL)
-		db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 1500}}
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
 		}
