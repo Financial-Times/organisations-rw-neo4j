@@ -92,7 +92,7 @@ func (cd service) Write(thing interface{}) error {
 	for _, identifier := range o.Identifiers {
 
 		if identifierLabels[identifier.Authority] == "" {
-			return fmt.Errorf("This identifier type- %v, is not supported. Only FACTSET_EDM, LEI and FT-TME are currently supported", identifier.Authority)
+			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority)}
 		}
 		addIdentfierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
 		queries = append(queries, addIdentfierQuery)
@@ -306,6 +306,18 @@ func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 	org := organisation{}
 	err := dec.Decode(&org)
 	return org, org.UUID, err
+}
+
+type requestError struct {
+	details string
+}
+
+func (re requestError) Error() string {
+	return "Invalid Request"
+}
+
+func (re requestError) InvalidRequestDetails() string {
+	return re.details
 }
 
 const (
