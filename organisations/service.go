@@ -214,7 +214,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	addType(&o.Type, &result.Type)
 	sortIdentifiers(o.Identifiers)
 
-	if len(o.Identifiers) == 0 {
+	if len(result.Identifiers) == 1 && (result.Identifiers[0].IdentifierValue == "") {
 		o.Identifiers = make([]identifier, 0, 0)
 	}
 
@@ -239,7 +239,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
-			OPTIONAL MATCH (p)<-[iden:IDENTIFIES]-(i:Identifier)
+			OPTIONAL MATCH (org)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE org:Concept:Organisation:Company:PublicCompany
 			DELETE iden, i
 			SET org={ uuid: {uuid}}

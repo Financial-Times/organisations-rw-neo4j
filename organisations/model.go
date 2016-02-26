@@ -14,7 +14,7 @@ type organisation struct {
 	LegalName              string       `json:"legalName,omitempty"`
 	ShortName              string       `json:"shortName,omitempty"`
 	HiddenLabel            string       `json:"hiddenLabel,omitempty"`
-	Identifiers            []identifier `json:"identifiers,omitempty"`
+	Identifiers            []identifier `json:"identifiers"`
 	TradeNames             []string     `json:"tradeNames,omitempty"`
 	LocalNames             []string     `json:"localNames,omitempty"`
 	FormerNames            []string     `json:"formerNames,omitempty"`
