@@ -25,6 +25,11 @@ var fsIdentifier = identifier{
 	IdentifierValue: "identifierValue",
 }
 
+var fsIdentifierOther = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "identifierOtherValue",
+}
+
 var leiCodeIdentifier = identifier{
 	Authority:       leiAuthority,
 	IdentifierValue: "leiCodeIdentifier",
@@ -62,7 +67,7 @@ var minimalOrg = organisation{
 var dupeIdentifierOrg = organisation{
 	UUID:        dupeIdentifierOrgUuid,
 	Type:        Company,
-	Identifiers: []identifier{fsIdentifier, leiCodeIdentifier},
+	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 var oddCharOrg = organisation{
@@ -199,7 +204,8 @@ func TestDeleteWithRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(fullOrg)
-	cypherDriver.Delete(fullOrgUuid)
+	found, err := cypherDriver.Delete(fullOrgUuid)
+	assert.True(found)
 
 	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
 
@@ -215,7 +221,9 @@ func TestDeleteNoRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(minimalOrg)
-	cypherDriver.Delete(minimalOrgUuid)
+	found, err := cypherDriver.Delete(minimalOrgUuid)
+	assert.NoError(err)
+	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUuid)
 
 	result := []struct {
 		Uuid string `json:"t.uuid"`
@@ -226,8 +234,7 @@ func TestDeleteNoRelationships(t *testing.T) {
 		Result:    &result,
 	}
 
-	err := db.Cypher(&getOrg)
-	assert.NoError(err)
+	assert.NoError(db.Cypher(&getOrg))
 	assert.Empty(result)
 }
 
