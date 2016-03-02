@@ -243,7 +243,7 @@ func TestDeleteNoRelationships(t *testing.T) {
 	assert.Empty(result)
 }
 
-func TestAddingWithLinkingIdentifiers(t *testing.T) {
+func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
@@ -252,6 +252,7 @@ func TestAddingWithLinkingIdentifiers(t *testing.T) {
 	assert.NoError(cypherDriver.Write(fullOrg))
 	err := cypherDriver.Write(dupeIdentifierOrg)
 	assert.Error(err)
+	assert.IsType(&neoutils.ConstraintViolationError{}, err)
 }
 
 func TestCount(t *testing.T) {
@@ -341,7 +342,7 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 }
 
 func getCypherDriver(db *neoism.Database) service {
-	cr :=NewCypherOrganisationService(neoutils.StringerDb{db}, db)
+	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
 	cr.Initialise()
 	return cr
 }

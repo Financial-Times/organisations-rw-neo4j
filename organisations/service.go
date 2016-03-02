@@ -134,6 +134,7 @@ func (cd service) Write(thing interface{}) error {
 		}
 		queries = append(queries, parentQuery)
 	}
+
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
