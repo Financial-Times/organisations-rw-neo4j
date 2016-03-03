@@ -1,5 +1,5 @@
 name    'ft-organisations_rw_neo4j'
-version '0.0.29'
+version '0.0.30'
 source 'UNKNOWN'
 author 'ft'
 license 'Apache License, Version 2.0'
