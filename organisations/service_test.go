@@ -13,7 +13,7 @@ import (
 const (
 	fullOrgUuid                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
 	minimalOrgUuid               = "33f93f25-3301-417e-9b20-50b27d215617"
-	oddCharOrgUuid               = "161403e2-074f-3c82-9328-0337e909ac8c"
+	oddCharOrgUuid               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
 	dupeIdentifierOrgUuid        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
 	parentOrgUuid                = "de38231e-e481-4958-b470-e124b2ef5a34"
 	industryClassificationUuid   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
@@ -23,6 +23,16 @@ const (
 var fsIdentifier = identifier{
 	Authority:       fsAuthority,
 	IdentifierValue: "identifierValue",
+}
+
+var fsIdentifierOther = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "identifierOtherValue",
+}
+
+var fsIdentifierMinimal = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "identifierMinimalValue",
 }
 
 var leiCodeIdentifier = identifier{
@@ -55,14 +65,14 @@ var fullOrg = organisation{
 var minimalOrg = organisation{
 	UUID:        minimalOrgUuid,
 	Type:        Organisation,
-	Identifiers: []identifier{fsIdentifier},
+	Identifiers: []identifier{fsIdentifierMinimal},
 	ProperName:  "Minimal Org Proper Name",
 }
 
 var dupeIdentifierOrg = organisation{
 	UUID:        dupeIdentifierOrgUuid,
 	Type:        Company,
-	Identifiers: []identifier{fsIdentifier, leiCodeIdentifier},
+	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 var oddCharOrg = organisation{
@@ -199,7 +209,8 @@ func TestDeleteWithRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(fullOrg)
-	cypherDriver.Delete(fullOrgUuid)
+	found, err := cypherDriver.Delete(fullOrgUuid)
+	assert.True(found)
 
 	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
 
@@ -215,7 +226,9 @@ func TestDeleteNoRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	cypherDriver.Write(minimalOrg)
-	cypherDriver.Delete(minimalOrgUuid)
+	found, err := cypherDriver.Delete(minimalOrgUuid)
+	assert.NoError(err)
+	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUuid)
 
 	result := []struct {
 		Uuid string `json:"t.uuid"`
@@ -226,19 +239,20 @@ func TestDeleteNoRelationships(t *testing.T) {
 		Result:    &result,
 	}
 
-	err := db.Cypher(&getOrg)
-	assert.NoError(err)
+	assert.NoError(db.Cypher(&getOrg))
 	assert.Empty(result)
 }
 
-func TestAddingWithLinkingIdentifiers(t *testing.T) {
+func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 	assert.NoError(cypherDriver.Write(fullOrg))
-	assert.NoError(cypherDriver.Write(dupeIdentifierOrg))
+	err := cypherDriver.Write(dupeIdentifierOrg)
+	assert.Error(err)
+	assert.IsType(&neoutils.ConstraintViolationError{}, err)
 }
 
 func TestCount(t *testing.T) {
@@ -248,8 +262,8 @@ func TestCount(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(minimalOrg)
-	cypherDriver.Write(fullOrg)
+	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(fullOrg))
 
 	count, err := cypherDriver.Count()
 	assert.NoError(err)
@@ -265,10 +279,10 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 
 	checkGraph := neoism.CypherQuery{
 		Statement: `
-			MATCH (org:Thing {uuid: {uuid}}) RETURN org.uuid
+			MATCH (org:Thing) WHERE org.uuid in {uuids} RETURN org.uuid
 		`,
-		Parameters: map[string]interface{}{
-			"uuid": fullOrgUuid,
+		Parameters: neoism.Props{
+			"uuids": []string{fullOrgUuid, minimalOrgUuid, oddCharOrgUuid, dupeIdentifierOrgUuid},
 		},
 		Result: &result,
 	}
@@ -278,13 +292,13 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 }
 
 func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions) *neoism.Database {
-	db := getDatabaseConnection(t, assert)
+	db := getDatabaseConnection(assert)
 	cleanDB(db, t, assert)
 	checkDbClean(db, t)
 	return db
 }
 
-func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Database {
+func getDatabaseConnection(assert *assert.Assertions) *neoism.Database {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "http://localhost:7474/db/data"
@@ -298,25 +312,28 @@ func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Data
 func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 	qs := []*neoism.CypherQuery{
 		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", fullOrgUuid),
+		},
+		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", fullOrgUuid),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", minimalOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUuid),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", oddCharOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUuid),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", dupeIdentifierOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeIdentifierOrgUuid),
 		},
 		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", parentOrgUuid),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", industryClassificationUuid),
+			Statement: fmt.Sprintf("MATCH (class:Thing {uuid: '%v'}) DETACH DELETE class", industryClassificationUuid),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", authorityNotSupportedOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", authorityNotSupportedOrgUuid),
 		},
 	}
 
@@ -325,5 +342,7 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 }
 
 func getCypherDriver(db *neoism.Database) service {
-	return NewCypherOrganisationService(neoutils.StringerDb{db}, db)
+	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
+	cr.Initialise()
+	return cr
 }
