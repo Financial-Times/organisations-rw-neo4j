@@ -71,8 +71,6 @@ func (cd service) Write(thing interface{}) error {
 		},
 	}
 
-	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery}
-
 	resetOrgQuery := &neoism.CypherQuery{
 		Statement: `MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept
@@ -82,7 +80,8 @@ func (cd service) Write(thing interface{}) error {
 			"props": props,
 		},
 	}
-	queries = append(queries, resetOrgQuery)
+
+	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
 	identifierLabels := map[string]string{
 		fsAuthority:  factsetIdentifierLabel,
@@ -135,14 +134,15 @@ func (cd service) Write(thing interface{}) error {
 		}
 		queries = append(queries, parentQuery)
 	}
+
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
 func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
 
 	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					MERGE (i:Identifier {value:{value} , authority:{authority}})
-					MERGE (o)<-[:IDENTIFIES]-(i)
+					CREATE (i:Identifier {value:{value} , authority:{authority}})
+					CREATE (o)<-[:IDENTIFIES]-(i)
 					set i : %s `, identifierLabel)
 
 	query := &neoism.CypherQuery{
@@ -214,7 +214,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	addType(&o.Type, &result.Type)
 	sortIdentifiers(o.Identifiers)
 
-	if len(o.Identifiers) == 0 {
+	if len(result.Identifiers) == 1 && (result.Identifiers[0].IdentifierValue == "") {
 		o.Identifiers = make([]identifier, 0, 0)
 	}
 
@@ -239,7 +239,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
-			OPTIONAL MATCH (p)<-[iden:IDENTIFIES]-(i:Identifier)
+			OPTIONAL MATCH (org)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE org:Concept:Organisation:Company:PublicCompany
 			DELETE iden, i
 			SET org={ uuid: {uuid}}
