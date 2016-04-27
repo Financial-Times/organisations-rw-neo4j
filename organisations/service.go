@@ -42,9 +42,8 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 	}
 }
 
-//Write - Writes an Organisation node
-func (cd service) Write(thing interface{}) error {
-	o := thing.(organisation)
+
+func constructOrganisationProperties(o organisation) (map[string]interface{}) {
 
 	props := map[string]interface{}{
 		"uuid":       o.UUID,
@@ -60,6 +59,10 @@ func (cd service) Write(thing interface{}) error {
 	setListProps(&props, &o.TradeNames, "tradeNames")
 	setListProps(&props, &o.Aliases, "aliases")
 
+	return props
+}
+
+func constructDeleteEntityRelationshipQuery(uuid string) (*neoism.CypherQuery) {
 	deleteEntityRelationshipsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (o:Thing {uuid:{uuid}})
 		OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
@@ -67,19 +70,53 @@ func (cd service) Write(thing interface{}) error {
 		OPTIONAL MATCH (o)<-[iden:IDENTIFIES]-(i)
 		DELETE hc, soo, iden, i`,
 		Parameters: map[string]interface{}{
-			"uuid": o.UUID,
+			"uuid": uuid,
 		},
 	}
 
+	return deleteEntityRelationshipsQuery
+}
+
+func constructResetOrganisationQuery(uuid string, props map[string]interface{}) (*neoism.CypherQuery) {
 	resetOrgQuery := &neoism.CypherQuery{
 		Statement: `MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept
 					SET o={props}`,
 		Parameters: map[string]interface{}{
-			"uuid":  o.UUID,
+			"uuid": uuid,
 			"props": props,
 		},
 	}
+
+	return resetOrgQuery
+}
+
+func constructTransferAnnotationsQuery(oldOrgUUID string, newOrgUUID string, predicate string) (*neoism.CypherQuery) {
+	transferAnnotationsQuery := &neoism.CypherQuery{
+		Statement: fmt.Sprintf(`MATCH (oldOrg:Thing {uuid:{uuid}})
+					MATCH (oldOrg)<-[oldRel:%s]-(p)
+					MATCH (newOrg:Thing {uuid:{canonicalUUID}})
+					MERGE (newOrg)<-[newRel:%s]-(p)
+					SET newRel = oldRel
+					DELETE oldRel`,predicate,predicate),
+
+		Parameters: map[string]interface{}{
+			"uuid": oldOrgUUID,
+			"canonicalUUID": newOrgUUID,
+		},
+	}
+	return transferAnnotationsQuery
+}
+
+//Write - Writes an Organisation node
+func (cd service) Write(thing interface{}) error {
+
+	o := thing.(organisation)
+	props := constructOrganisationProperties(o)
+
+	deleteEntityRelationshipsQuery := constructDeleteEntityRelationshipQuery(o.UUID)
+
+	resetOrgQuery := constructResetOrganisationQuery(o.UUID, props)
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
@@ -87,14 +124,43 @@ func (cd service) Write(thing interface{}) error {
 		fsAuthority:  factsetIdentifierLabel,
 		leiAuthority: leiIdentifierLabel,
 		tmeAuthority: tmeIdentifierLabel,
+		uppAuthority: uppIdentifierLabel,
 	}
+
+	// clean-up the old organisation nodes (which have now been transformed to UPP identifiers)
+	for _, identifier := range o.Identifiers {
+		if identifier.Authority == uppAuthority {
+			deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
+			queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
+
+			// re-point the remaining relationships from previous node to the canonical/actual one (annotations)
+			// delete oldOrg and oldRelationship
+			transferMentionsAnnotationsQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "MENTIONS")
+			transferAboutAnnotationsQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "ABOUT")
+			transferHasOrganisationQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "HAS_ORGANISATION")
+
+			queries = append(queries, transferMentionsAnnotationsQuery)
+			queries = append(queries, transferAboutAnnotationsQuery)
+			queries = append(queries, transferHasOrganisationQuery)
+
+			deleteOldOrganisationQuery := &neoism.CypherQuery{
+				Statement: `MATCH (o:Thing {uuid:{uuid}}) DELETE o`,
+				Parameters: map[string]interface{}{
+					"uuid": identifier.IdentifierValue,
+				},
+			}
+
+			queries = append(queries, deleteOldOrganisationQuery)
+		}
+	}
+
 	for _, identifier := range o.Identifiers {
 
 		if identifierLabels[identifier.Authority] == "" {
-			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority)}
+			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
 		}
-		addIdentfierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
-		queries = append(queries, addIdentfierQuery)
+		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
+		queries = append(queries, addIdentifierQuery)
 	}
 
 	err, stringType := o.Type.String()
@@ -324,7 +390,9 @@ const (
 	fsAuthority            = "http://api.ft.com/system/FACTSET-EDM"
 	leiAuthority           = "http://api.ft.com/system/LEI"
 	tmeAuthority           = "http://api.ft.com/system/FT-TME"
+	uppAuthority           = "http://api.ft.com/system/FT-UPP"
 	factsetIdentifierLabel = "FactsetIdentifier"
 	leiIdentifierLabel     = "LegalEntityIdentifier"
 	tmeIdentifierLabel     = "TMEIdentifier"
+	uppIdentifierLabel     = "UPPIdentifier"
 )
