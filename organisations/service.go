@@ -3,17 +3,20 @@ package organisations
 import (
 	"encoding/json"
 	"fmt"
+	queueConsumer "github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
+	log "github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 )
 
 type service struct {
-	cypherRunner neoutils.CypherRunner
-	indexManager neoutils.IndexManager
+	cypherRunner   neoutils.CypherRunner
+	indexManager   neoutils.IndexManager
+	consumerConfig *queueConsumer.QueueConfig
 }
 
-func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) service {
-	return service{cypherRunner, indexManager}
+func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager, consumerConfig *queueConsumer.QueueConfig) service {
+	return service{cypherRunner, indexManager, consumerConfig}
 }
 
 func (cd service) Initialise() error {
@@ -39,6 +42,18 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 
 	if len(items) > 0 {
 		(*props)[propName] = items
+	}
+}
+
+// Takes a kafka message and parses it to an organisation and calls write
+// TODO THIS NEEDS MOVING????
+func (cd service) WriteKafkaMessage(msg queueConsumer.Message) {
+	err := cd.Write(msg.Body)
+
+	if err == nil {
+		log.Infof("Successfully written msg: %s", msg)
+	} else {
+		log.Infof("Error processing msg: %s", msg)
 	}
 }
 
