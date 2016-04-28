@@ -14,6 +14,8 @@ const (
 	fullOrgUuid                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
 	minimalOrgUuid               = "33f93f25-3301-417e-9b20-50b27d215617"
 	oddCharOrgUuid               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
+	canonicalOrgUuid             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
+	contentUuid		     = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
 	dupeIdentifierOrgUuid        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
 	parentOrgUuid                = "de38231e-e481-4958-b470-e124b2ef5a34"
 	industryClassificationUuid   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
@@ -43,6 +45,11 @@ var leiCodeIdentifier = identifier{
 var tmeIdentifier = identifier{
 	Authority:       tmeAuthority,
 	IdentifierValue: "tmeIdentifier",
+}
+
+var uppIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: minimalOrgUuid,
 }
 
 var fullOrg = organisation{
@@ -154,6 +161,104 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
+	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
+}
+
+func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+
+	updatedOrg := organisation{
+		UUID:        canonicalOrgUuid,
+		Type:        Organisation,
+		Identifiers: []identifier{fsIdentifier, uppIdentifier},
+		ProperName:  "Updated Name",
+		HiddenLabel: "No longer hidden",
+	}
+
+	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(updatedOrg))
+
+	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUuid)
+
+	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
+	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
+	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
+}
+
+func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTransfer(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+
+	updatedOrg := organisation{
+		UUID:        canonicalOrgUuid,
+		Type:        Organisation,
+		Identifiers: []identifier{fsIdentifier, uppIdentifier},
+		ProperName:  "Updated Name",
+		HiddenLabel: "No longer hidden",
+	}
+
+	//add MENTIONS relationship with platformVersion property
+	addMentionsQuery := &neoism.CypherQuery{
+		Statement: `MATCH (c:Thing{uuid:{uuid}})
+			    CREATE (co:Content{uuid:{cuuid}})
+			    CREATE (co)-[r:MENTIONS{platformVersion:"v2"}]->(c)`,
+		Parameters: map[string]interface{}{
+			"cuuid": contentUuid,
+			"uuid": minimalOrgUuid,
+		},
+	}
+
+	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
+	assert.NoError(cypherDriver.Write(updatedOrg))
+
+	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUuid)
+
+	type version []struct {
+		Version	string	`json:"r.platformVersion"`
+	}
+
+	oldPlatformVersion := version {}
+	newPlatformVersion := version {}
+
+	readMentionsQueryForOldOrg := &neoism.CypherQuery{
+		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
+		 	    return r.platformVersion`,
+		Parameters: map[string]interface{}{
+			"cuuid": contentUuid,
+			"uuid": minimalOrgUuid,
+		},
+		Result: &oldPlatformVersion,
+	}
+	readMentionsQueryForNewOrg := &neoism.CypherQuery{
+		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
+		 	    return r.platformVersion`,
+		Parameters: map[string]interface{}{
+			"cuuid": contentUuid,
+			"uuid": canonicalOrgUuid,
+		},
+		Result: &newPlatformVersion,
+	}
+
+	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readMentionsQueryForNewOrg,readMentionsQueryForOldOrg}))
+
+	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
+	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
+
+	assert.Equal(1, len(newPlatformVersion), "platformVersion size differs for new org")
+	assert.Equal("v2", newPlatformVersion[0].Version, "platformVersion value differs for new org")
+
+	assert.Equal(0, len(oldPlatformVersion), "platformVersion size differs for old org")
+
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
 }
 
@@ -316,6 +421,15 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 		},
 		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", fullOrgUuid),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", canonicalOrgUuid),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", canonicalOrgUuid),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'})-[rel]-(o) DELETE c, rel ", contentUuid),
 		},
 		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUuid),

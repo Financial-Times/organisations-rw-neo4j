@@ -143,8 +143,10 @@ func (cd service) Write(thing interface{}) error {
 			queries = append(queries, transferAboutAnnotationsQuery)
 			queries = append(queries, transferHasOrganisationQuery)
 
+			// delete everything that remained
 			deleteOldOrganisationQuery := &neoism.CypherQuery{
-				Statement: `MATCH (o:Thing {uuid:{uuid}}) DELETE o`,
+				Statement: `MATCH (o:Thing {uuid:{uuid}})
+				OPTIONAL MATCH (o)-[r]-(c) DELETE o, r, c`,
 				Parameters: map[string]interface{}{
 					"uuid": identifier.IdentifierValue,
 				},
