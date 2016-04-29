@@ -42,72 +42,6 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 	}
 }
 
-
-func constructOrganisationProperties(o organisation) (map[string]interface{}) {
-
-	props := map[string]interface{}{
-		"uuid":       o.UUID,
-		"properName": o.ProperName,
-		"prefLabel":  o.ProperName,
-	}
-
-	setProps(&props, &o.LegalName, "legalName")
-	setProps(&props, &o.ShortName, "shortName")
-	setProps(&props, &o.HiddenLabel, "hiddenLabel")
-	setListProps(&props, &o.FormerNames, "formerNames")
-	setListProps(&props, &o.LocalNames, "localNames")
-	setListProps(&props, &o.TradeNames, "tradeNames")
-	setListProps(&props, &o.Aliases, "aliases")
-
-	return props
-}
-
-func constructDeleteEntityRelationshipQuery(uuid string) (*neoism.CypherQuery) {
-	deleteEntityRelationshipsQuery := &neoism.CypherQuery{
-		Statement: `MATCH (o:Thing {uuid:{uuid}})
-		OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
-		OPTIONAL MATCH (o)-[soo:SUB_ORGANISATION_OF]->(p)
-		OPTIONAL MATCH (o)<-[iden:IDENTIFIES]-(i)
-		DELETE hc, soo, iden, i`,
-		Parameters: map[string]interface{}{
-			"uuid": uuid,
-		},
-	}
-
-	return deleteEntityRelationshipsQuery
-}
-
-func constructResetOrganisationQuery(uuid string, props map[string]interface{}) (*neoism.CypherQuery) {
-	resetOrgQuery := &neoism.CypherQuery{
-		Statement: `MERGE (o:Thing {uuid: {uuid}})
-					REMOVE o:PublicCompany:Company:Organisation:Concept
-					SET o={props}`,
-		Parameters: map[string]interface{}{
-			"uuid": uuid,
-			"props": props,
-		},
-	}
-
-	return resetOrgQuery
-}
-
-func constructTransferAnnotationsQuery(oldOrgUUID string, newOrgUUID string, predicate string) (*neoism.CypherQuery) {
-	transferAnnotationsQuery := &neoism.CypherQuery{
-		Statement: fmt.Sprintf(`MATCH (oldOrg:Thing {uuid:{uuid}})
-					MATCH (oldOrg)<-[oldRel:%s]-(p)
-					MATCH (newOrg:Thing {uuid:{canonicalUUID}})
-					MERGE (newOrg)<-[newRel:%s]-(p)
-					SET newRel = oldRel
-					DELETE oldRel`,predicate,predicate),
-
-		Parameters: map[string]interface{}{
-			"uuid": oldOrgUUID,
-			"canonicalUUID": newOrgUUID,
-		},
-	}
-	return transferAnnotationsQuery
-}
-
 //Write - Writes an Organisation node
 func (cd service) Write(thing interface{}) error {
 
@@ -115,10 +49,18 @@ func (cd service) Write(thing interface{}) error {
 	props := constructOrganisationProperties(o)
 
 	deleteEntityRelationshipsQuery := constructDeleteEntityRelationshipQuery(o.UUID)
-
 	resetOrgQuery := constructResetOrganisationQuery(o.UUID, props)
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
+
+	cleanUpQueriesForOldNodes, err := cd.constructCleanUpOldOrganisationNodesQueries(o.UUID, o.Identifiers)
+	if (err!=nil) {
+		return err
+	}
+
+	if len(cleanUpQueriesForOldNodes)!=0 {
+		queries = append(queries, cleanUpQueriesForOldNodes...)
+	}
 
 	identifierLabels := map[string]string{
 		fsAuthority:  factsetIdentifierLabel,
@@ -127,37 +69,7 @@ func (cd service) Write(thing interface{}) error {
 		uppAuthority: uppIdentifierLabel,
 	}
 
-	// clean-up the old organisation nodes (which have now been transformed to UPP identifiers)
 	for _, identifier := range o.Identifiers {
-		if identifier.Authority == uppAuthority {
-			deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
-			queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
-
-			// re-point the remaining relationships from previous node to the canonical/actual one (annotations)
-			// delete oldOrg and oldRelationship
-			transferMentionsAnnotationsQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "MENTIONS")
-			transferAboutAnnotationsQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "ABOUT")
-			transferHasOrganisationQuery := constructTransferAnnotationsQuery(identifier.IdentifierValue, o.UUID, "HAS_ORGANISATION")
-
-			queries = append(queries, transferMentionsAnnotationsQuery)
-			queries = append(queries, transferAboutAnnotationsQuery)
-			queries = append(queries, transferHasOrganisationQuery)
-
-			// delete everything that remained
-			deleteOldOrganisationQuery := &neoism.CypherQuery{
-				Statement: `MATCH (o:Thing {uuid:{uuid}})
-				OPTIONAL MATCH (o)-[r]-(c) DELETE o, r, c`,
-				Parameters: map[string]interface{}{
-					"uuid": identifier.IdentifierValue,
-				},
-			}
-
-			queries = append(queries, deleteOldOrganisationQuery)
-		}
-	}
-
-	for _, identifier := range o.Identifiers {
-
 		if identifierLabels[identifier.Authority] == "" {
 			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
 		}
@@ -165,6 +77,7 @@ func (cd service) Write(thing interface{}) error {
 		queries = append(queries, addIdentifierQuery)
 	}
 
+	//add type
 	err, stringType := o.Type.String()
 	if err == nil {
 		setTypeStatement := fmt.Sprintf(`MERGE (o:Thing {uuid: {uuid}})  set o : %s `, stringType)
@@ -181,47 +94,44 @@ func (cd service) Write(thing interface{}) error {
 	}
 
 	if o.IndustryClassification != "" {
-
-		industryClassQuery := &neoism.CypherQuery{
-			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
-			Parameters: map[string]interface{}{
-				"uuid":    o.UUID,
-				"indUuid": o.IndustryClassification,
-			},
-		}
+		industryClassQuery := constructCreateIndustryClassificationQuery(o.UUID, o.IndustryClassification)
 		queries = append(queries, industryClassQuery)
 	}
 
 	if o.ParentOrganisation != "" {
-		parentQuery := &neoism.CypherQuery{
-			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
-			Parameters: map[string]interface{}{
-				"uuid":   o.UUID,
-				"paUuid": o.ParentOrganisation,
-			},
-		}
+		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
 
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
+func (cd service) constructCleanUpOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error){
 
-	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					CREATE (i:Identifier {value:{value} , authority:{authority}})
-					CREATE (o)<-[:IDENTIFIES]-(i)
-					set i : %s `, identifierLabel)
+	queries := []*neoism.CypherQuery{}
 
-	query := &neoism.CypherQuery{
-		Statement: statementTemplate,
-		Parameters: map[string]interface{}{
-			"uuid":      uuid,
-			"value":     identifier.IdentifierValue,
-			"authority": identifier.Authority,
-		},
+	// clean-up the old organisation nodes (which have now been transformed to UPP identifiers)
+	for _, identifier := range possibleOldNodes {
+		if identifier.Authority == uppAuthority {
+			deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
+			queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
+
+			// re-point the remaining relationships from previous node to the canonical/actual one
+			transferQueries, err := TransferRelationships(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+			if err != nil {
+				return nil, err
+			}
+			if len(transferQueries)!=0 {
+				queries = append(queries, transferQueries...)
+			}
+
+			// delete oldOrg
+			deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier.IdentifierValue)
+			queries = append(queries, deleteOldOrganisationQuery)
+		}
 	}
-	return query
+
+	return queries, nil
 }
 
 //Read - Internal Read of an Organisation
