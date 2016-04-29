@@ -54,11 +54,11 @@ func (cd service) Write(thing interface{}) error {
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
 	cleanUpQueriesForOldNodes, err := cd.constructCleanUpOldOrganisationNodesQueries(o.UUID, o.Identifiers)
-	if (err!=nil) {
+	if err != nil {
 		return err
 	}
 
-	if len(cleanUpQueriesForOldNodes)!=0 {
+	if len(cleanUpQueriesForOldNodes) != 0 {
 		queries = append(queries, cleanUpQueriesForOldNodes...)
 	}
 
@@ -106,7 +106,7 @@ func (cd service) Write(thing interface{}) error {
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-func (cd service) constructCleanUpOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error){
+func (cd service) constructCleanUpOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error) {
 
 	queries := []*neoism.CypherQuery{}
 
@@ -121,7 +121,7 @@ func (cd service) constructCleanUpOldOrganisationNodesQueries(canonicalUUID stri
 			if err != nil {
 				return nil, err
 			}
-			if len(transferQueries)!=0 {
+			if len(transferQueries) != 0 {
 				queries = append(queries, transferQueries...)
 			}
 

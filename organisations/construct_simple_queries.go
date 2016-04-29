@@ -5,8 +5,7 @@ import (
 	"github.com/jmcvetta/neoism"
 )
 
-
-func constructOrganisationProperties(o organisation) (map[string]interface{}) {
+func constructOrganisationProperties(o organisation) map[string]interface{} {
 	props := map[string]interface{}{
 		"uuid":       o.UUID,
 		"properName": o.ProperName,
@@ -24,7 +23,7 @@ func constructOrganisationProperties(o organisation) (map[string]interface{}) {
 	return props
 }
 
-func constructDeleteEntityRelationshipQuery(uuid string) (*neoism.CypherQuery) {
+func constructDeleteEntityRelationshipQuery(uuid string) *neoism.CypherQuery {
 	deleteEntityRelationshipsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (o:Thing {uuid:{uuid}})
 		OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
@@ -39,13 +38,13 @@ func constructDeleteEntityRelationshipQuery(uuid string) (*neoism.CypherQuery) {
 	return deleteEntityRelationshipsQuery
 }
 
-func constructResetOrganisationQuery(uuid string, props map[string]interface{}) (*neoism.CypherQuery) {
+func constructResetOrganisationQuery(uuid string, props map[string]interface{}) *neoism.CypherQuery {
 	resetOrgQuery := &neoism.CypherQuery{
 		Statement: `MERGE (o:Thing {uuid: {uuid}})
 					REMOVE o:PublicCompany:Company:Organisation:Concept
 					SET o={props}`,
 		Parameters: map[string]interface{}{
-			"uuid": uuid,
+			"uuid":  uuid,
 			"props": props,
 		},
 	}
@@ -53,7 +52,7 @@ func constructResetOrganisationQuery(uuid string, props map[string]interface{}) 
 	return resetOrgQuery
 }
 
-func constructDeleteEmptyNodeQuery(uuid string) (*neoism.CypherQuery) {
+func constructDeleteEmptyNodeQuery(uuid string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
 		Statement: `MATCH (o:Thing {uuid:{uuid}})
 					    DELETE o`,
@@ -63,7 +62,7 @@ func constructDeleteEmptyNodeQuery(uuid string) (*neoism.CypherQuery) {
 	}
 }
 
-func constructCreateParentOrganisationQuery(uuid string, parentUUID string) (*neoism.CypherQuery) {
+func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
 		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
 		Parameters: map[string]interface{}{
@@ -73,7 +72,7 @@ func constructCreateParentOrganisationQuery(uuid string, parentUUID string) (*ne
 	}
 }
 
-func constructCreateIndustryClassificationQuery(uuid string, industryClassificationUUID string) (*neoism.CypherQuery) {
+func constructCreateIndustryClassificationQuery(uuid string, industryClassificationUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
 		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
 		Parameters: map[string]interface{}{

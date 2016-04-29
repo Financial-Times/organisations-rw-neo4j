@@ -2,30 +2,30 @@ package organisations
 
 import (
 	"fmt"
-	"github.com/jmcvetta/neoism"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
+	"github.com/jmcvetta/neoism"
 )
 
 type relationships []struct {
-	RelationshipType string	`json:"relationship"`
+	RelationshipType string `json:"relationship"`
 }
 
 func TransferRelationships(cypherRunner neoutils.CypherRunner, destinationUUID string, sourceUUID string) ([]*neoism.CypherQuery, error) {
 
 	relationshipsFromSourceNode, relationshipsToSourceNode, err := getNodeRelationshipNames(cypherRunner, sourceUUID)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 
 	// NOTE: there will be relationships, like: SUB_ORGANISATION_OF, HAS_CLASSIFICATION or IDENTIFIES which even if will be returned here, at the actual execution phase will no longer exists in the db
 	writeQueries := []*neoism.CypherQuery{}
 	for _, rel := range relationshipsFromSourceNode {
-		transfQuery := constructTransferRelationshipsQuery(sourceUUID,destinationUUID,rel.RelationshipType, true)
+		transfQuery := constructTransferRelationshipsQuery(sourceUUID, destinationUUID, rel.RelationshipType, true)
 		writeQueries = append(writeQueries, transfQuery)
 	}
 
 	for _, rel := range relationshipsToSourceNode {
-		transfQuery := constructTransferRelationshipsQuery(sourceUUID,destinationUUID,rel.RelationshipType, false)
+		transfQuery := constructTransferRelationshipsQuery(sourceUUID, destinationUUID, rel.RelationshipType, false)
 		writeQueries = append(writeQueries, transfQuery)
 	}
 
@@ -69,12 +69,12 @@ func getNodeRelationshipNames(cypherRunner neoutils.CypherRunner, uuid string) (
 
 }
 
-func constructTransferRelationshipsQuery(fromUUID string, toUUID string, predicate string, toRight bool) (*neoism.CypherQuery) {
+func constructTransferRelationshipsQuery(fromUUID string, toUUID string, predicate string, toRight bool) *neoism.CypherQuery {
 
 	var leftArrow, righArrow string
 	if toRight {
 		righArrow = ">"
-	} else  {
+	} else {
 		leftArrow = "<"
 	}
 
@@ -88,7 +88,7 @@ func constructTransferRelationshipsQuery(fromUUID string, toUUID string, predica
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
-			"toUUID": toUUID,
+			"toUUID":   toUUID,
 		},
 	}
 	return transferAnnotationsQuery

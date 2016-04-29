@@ -15,7 +15,7 @@ const (
 	minimalOrgUuid               = "33f93f25-3301-417e-9b20-50b27d215617"
 	oddCharOrgUuid               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
 	canonicalOrgUuid             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
-	contentUuid		     = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
+	contentUuid                  = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
 	dupeIdentifierOrgUuid        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
 	parentOrgUuid                = "de38231e-e481-4958-b470-e124b2ef5a34"
 	industryClassificationUuid   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
@@ -212,7 +212,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 			    CREATE (co)-[r:MENTIONS{platformVersion:"v2"}]->(c)`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUuid,
-			"uuid": minimalOrgUuid,
+			"uuid":  minimalOrgUuid,
 		},
 	}
 
@@ -224,18 +224,18 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUuid)
 
 	type version []struct {
-		Version	string	`json:"r.platformVersion"`
+		Version string `json:"r.platformVersion"`
 	}
 
-	oldPlatformVersion := version {}
-	newPlatformVersion := version {}
+	oldPlatformVersion := version{}
+	newPlatformVersion := version{}
 
 	readMentionsQueryForOldOrg := &neoism.CypherQuery{
 		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
 		 	    return r.platformVersion`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUuid,
-			"uuid": minimalOrgUuid,
+			"uuid":  minimalOrgUuid,
 		},
 		Result: &oldPlatformVersion,
 	}
@@ -244,12 +244,12 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 		 	    return r.platformVersion`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUuid,
-			"uuid": canonicalOrgUuid,
+			"uuid":  canonicalOrgUuid,
 		},
 		Result: &newPlatformVersion,
 	}
 
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readMentionsQueryForNewOrg,readMentionsQueryForOldOrg}))
+	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readMentionsQueryForNewOrg, readMentionsQueryForOldOrg}))
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
