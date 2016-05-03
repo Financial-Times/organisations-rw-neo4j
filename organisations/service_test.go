@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	fullOrgUuid                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
-	minimalOrgUuid               = "33f93f25-3301-417e-9b20-50b27d215617"
-	oddCharOrgUuid               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
-	canonicalOrgUuid             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
-	contentUuid                  = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
-	dupeIdentifierOrgUuid        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
-	parentOrgUuid                = "de38231e-e481-4958-b470-e124b2ef5a34"
-	industryClassificationUuid   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
-	authorityNotSupportedOrgUuid = "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc"
+	fullOrgUUID                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
+	minimalOrgUUID               = "33f93f25-3301-417e-9b20-50b27d215617"
+	oddCharOrgUUID               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
+	canonicalOrgUUID             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
+	contentUUID                  = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
+	dupeIdentifierOrgUUID        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
+	parentOrgUUID                = "de38231e-e481-4958-b470-e124b2ef5a34"
+	industryClassificationUUID   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
+	authorityNotSupportedOrgUUID = "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc"
 )
 
 var fsIdentifier = identifier{
@@ -49,11 +49,11 @@ var tmeIdentifier = identifier{
 
 var uppIdentifier = identifier{
 	Authority:       uppAuthority,
-	IdentifierValue: minimalOrgUuid,
+	IdentifierValue: minimalOrgUUID,
 }
 
 var fullOrg = organisation{
-	UUID: fullOrgUuid,
+	UUID: fullOrgUUID,
 	Type: PublicCompany,
 	//identifiers are in the expected read order
 	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, leiCodeIdentifier},
@@ -65,29 +65,29 @@ var fullOrg = organisation{
 	TradeNames:             []string{"Old Trade Name, inc.", "Older Trade Name, inc."},
 	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
 	Aliases:                []string{"alias1", "alias2", "alias3"},
-	ParentOrganisation:     parentOrgUuid,
-	IndustryClassification: industryClassificationUuid,
+	ParentOrganisation:     parentOrgUUID,
+	IndustryClassification: industryClassificationUUID,
 }
 
 var minimalOrg = organisation{
-	UUID:        minimalOrgUuid,
+	UUID:        minimalOrgUUID,
 	Type:        Organisation,
 	Identifiers: []identifier{fsIdentifierMinimal},
 	ProperName:  "Minimal Org Proper Name",
 }
 
 var dupeIdentifierOrg = organisation{
-	UUID:        dupeIdentifierOrgUuid,
+	UUID:        dupeIdentifierOrgUUID,
 	Type:        Company,
 	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 var oddCharOrg = organisation{
-	UUID:               oddCharOrgUuid,
+	UUID:               oddCharOrgUUID,
 	Type:               Company,
 	ProperName:         "TBWA\\Paling Walters Ltd.",
 	Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
-	ParentOrganisation: parentOrgUuid,
+	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
 	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
 	HiddenLabel:        "TBWA PALING WALTERS LTD",
@@ -102,7 +102,7 @@ func TestWriteNewOrganisation(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
-	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, _, err := cypherDriver.Read(fullOrgUUID)
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
@@ -120,7 +120,7 @@ func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
 		IdentifierValue: "leiCodeIdentifier",
 	}
 	var testOrg = organisation{
-		UUID:        authorityNotSupportedOrgUuid,
+		UUID:        authorityNotSupportedOrgUUID,
 		Type:        Organisation,
 		Identifiers: []identifier{fsIdentifier, unsupporterIdentifier},
 		ProperName:  "Proper Name",
@@ -128,7 +128,7 @@ func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
 
 	assert.Error(cypherDriver.Write(testOrg))
 
-	storedOrg, _, err := cypherDriver.Read(authorityNotSupportedOrgUuid)
+	storedOrg, _, err := cypherDriver.Read(authorityNotSupportedOrgUUID)
 
 	assert.NoError(err)
 	assert.Equal(storedOrg, organisation{})
@@ -144,12 +144,12 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(minimalOrg))
 
-	storedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 
 	assert.Empty(storedOrg.(organisation).HiddenLabel, "Minimal org should not have a hidden label value.")
 
 	updatedOrg := organisation{
-		UUID:        minimalOrgUuid,
+		UUID:        minimalOrgUUID,
 		Type:        Organisation,
 		Identifiers: []identifier{fsIdentifier},
 		ProperName:  "Updated Name",
@@ -158,7 +158,7 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(updatedOrg))
 
-	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
@@ -172,7 +172,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	updatedOrg := organisation{
-		UUID:        canonicalOrgUuid,
+		UUID:        canonicalOrgUUID,
 		Type:        Organisation,
 		Identifiers: []identifier{fsIdentifier, uppIdentifier},
 		ProperName:  "Updated Name",
@@ -182,8 +182,8 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
 	assert.NoError(cypherDriver.Write(minimalOrg))
 	assert.NoError(cypherDriver.Write(updatedOrg))
 
-	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
-	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUuid)
+	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
@@ -198,7 +198,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	defer cleanDB(db, t, assert)
 
 	updatedOrg := organisation{
-		UUID:        canonicalOrgUuid,
+		UUID:        canonicalOrgUUID,
 		Type:        Organisation,
 		Identifiers: []identifier{fsIdentifier, uppIdentifier},
 		ProperName:  "Updated Name",
@@ -211,8 +211,8 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 			    CREATE (co:Content{uuid:{cuuid}})
 			    CREATE (co)-[r:MENTIONS{platformVersion:"v2"}]->(c)`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUuid,
-			"uuid":  minimalOrgUuid,
+			"cuuid": contentUUID,
+			"uuid":  minimalOrgUUID,
 		},
 	}
 
@@ -220,8 +220,8 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 	assert.NoError(cypherDriver.Write(updatedOrg))
 
-	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUuid)
-	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUuid)
+	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
 
 	type version []struct {
 		Version string `json:"r.platformVersion"`
@@ -234,8 +234,8 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
 		 	    return r.platformVersion`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUuid,
-			"uuid":  minimalOrgUuid,
+			"cuuid": contentUUID,
+			"uuid":  minimalOrgUUID,
 		},
 		Result: &oldPlatformVersion,
 	}
@@ -243,8 +243,8 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
 		 	    return r.platformVersion`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUuid,
-			"uuid":  canonicalOrgUuid,
+			"cuuid": contentUUID,
+			"uuid":  canonicalOrgUUID,
 		},
 		Result: &newPlatformVersion,
 	}
@@ -271,10 +271,10 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(oddCharOrg))
 
-	storedOrg, found, err := cypherDriver.Read(oddCharOrgUuid)
+	storedOrg, found, err := cypherDriver.Read(oddCharOrgUUID)
 
-	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUuid)
-	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUuid)
+	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUUID)
 	assert.True(reflect.DeepEqual(oddCharOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
 }
 
@@ -287,10 +287,10 @@ func TestReadOrganisation(t *testing.T) {
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
-	storedOrg, found, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, found, err := cypherDriver.Read(fullOrgUUID)
 
-	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUuid)
-	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUuid)
+	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
 	assert.True(reflect.DeepEqual(fullOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
 }
 
@@ -300,7 +300,7 @@ func TestDeleteNothing(t *testing.T) {
 	defer cleanDB(db, t, assert)
 
 	cypherDriver := getCypherDriver(db)
-	res, err := cypherDriver.Delete(fullOrgUuid)
+	res, err := cypherDriver.Delete(fullOrgUUID)
 
 	assert.NoError(err)
 	assert.False(res)
@@ -313,11 +313,11 @@ func TestDeleteWithRelationships(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(fullOrg)
-	found, err := cypherDriver.Delete(fullOrgUuid)
+	assert.Nil(cypherDriver.Write(fullOrg))
+	found, err := cypherDriver.Delete(fullOrgUUID)
 	assert.True(found)
 
-	storedOrg, _, err := cypherDriver.Read(fullOrgUuid)
+	storedOrg, _, err := cypherDriver.Read(fullOrgUUID)
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
@@ -330,17 +330,17 @@ func TestDeleteNoRelationships(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 
-	cypherDriver.Write(minimalOrg)
-	found, err := cypherDriver.Delete(minimalOrgUuid)
+	assert.Nil(cypherDriver.Write(minimalOrg))
+	found, err := cypherDriver.Delete(minimalOrgUUID)
 	assert.NoError(err)
-	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUuid)
+	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUUID)
 
 	result := []struct {
-		Uuid string `json:"t.uuid"`
+		UUID string `json:"t.uuid"`
 	}{}
 
 	getOrg := neoism.CypherQuery{
-		Statement: fmt.Sprintf("MATCH (t:Thing {uuid:'%v'}) RETURN t.uuid", minimalOrgUuid),
+		Statement: fmt.Sprintf("MATCH (t:Thing {uuid:'%v'}) RETURN t.uuid", minimalOrgUUID),
 		Result:    &result,
 	}
 
@@ -379,7 +379,7 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 	assert := assert.New(t)
 
 	result := []struct {
-		Uuid string `json:"org.uuid"`
+		UUID string `json:"org.uuid"`
 	}{}
 
 	checkGraph := neoism.CypherQuery{
@@ -387,7 +387,7 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 			MATCH (org:Thing) WHERE org.uuid in {uuids} RETURN org.uuid
 		`,
 		Parameters: neoism.Props{
-			"uuids": []string{fullOrgUuid, minimalOrgUuid, oddCharOrgUuid, dupeIdentifierOrgUuid},
+			"uuids": []string{fullOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeIdentifierOrgUUID},
 		},
 		Result: &result,
 	}
@@ -417,40 +417,40 @@ func getDatabaseConnection(assert *assert.Assertions) *neoism.Database {
 func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 	qs := []*neoism.CypherQuery{
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", fullOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", fullOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", fullOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", fullOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", canonicalOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", canonicalOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", canonicalOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", canonicalOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'})-[rel]-(o) DELETE c, rel ", contentUuid),
+			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'})-[rel]-(o) DELETE c, rel ", contentUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'}) DELETE c ", contentUuid),
+			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'}) DELETE c ", contentUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeIdentifierOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeIdentifierOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", parentOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", parentOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (class:Thing {uuid: '%v'}) DETACH DELETE class", industryClassificationUuid),
+			Statement: fmt.Sprintf("MATCH (class:Thing {uuid: '%v'}) DETACH DELETE class", industryClassificationUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", authorityNotSupportedOrgUuid),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", authorityNotSupportedOrgUUID),
 		},
 	}
 

@@ -3,8 +3,10 @@ package organisations
 import "errors"
 import "sort"
 
+//OrgType is the type of an Organisation
 type OrgType string
 
+//SortedIdentifiers is an array of ordered identifiers
 type SortedIdentifiers []identifier
 
 type organisation struct {

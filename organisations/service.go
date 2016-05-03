@@ -12,6 +12,7 @@ type service struct {
 	indexManager neoutils.IndexManager
 }
 
+//NewCypherOrganisationService returns a new service responsible for writing organisations in Neo4j
 func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) service {
 	return service{cypherRunner, indexManager}
 }
@@ -71,7 +72,7 @@ func (cd service) Write(thing interface{}) error {
 
 	for _, identifier := range o.Identifiers {
 		if identifierLabels[identifier.Authority] == "" {
-			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
+			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
 		}
 		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
 		queries = append(queries, addIdentifierQuery)
@@ -213,7 +214,7 @@ func addType(orgType *OrgType, types *[]string) {
 }
 
 //Delete - Deletes an Organisation
-func (pcd service) Delete(uuid string) (bool, error) {
+func (cd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
@@ -241,7 +242,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 		},
 	}
 
-	err := pcd.cypherRunner.CypherBatch(qs)
+	err := cd.cypherRunner.CypherBatch(qs)
 
 	s1, err := clearNode.Stats()
 
@@ -256,19 +257,19 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	return false, err
 }
 
-func (s service) Check() error {
-	return neoutils.Check(s.cypherRunner)
+func (cd service) Check() error {
+	return neoutils.Check(cd.cypherRunner)
 }
 
 type countResult []struct {
 	Count int `json:"c"`
 }
 
-func (s service) Count() (int, error) {
+func (cd service) Count() (int, error) {
 
 	results := countResult{}
 
-	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
+	err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
 		Statement: `MATCH (n:Organisation) return count(n) as c`,
 		Result:    &results,
 	}})
@@ -280,7 +281,7 @@ func (s service) Count() (int, error) {
 	return results[0].Count, nil
 }
 
-func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
+func (cd service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 	org := organisation{}
 	err := dec.Decode(&org)
 	return org, org.UUID, err
