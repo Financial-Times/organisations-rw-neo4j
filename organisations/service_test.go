@@ -438,6 +438,9 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUUID),
 		},
 		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", minimalOrgUUID),
+		},
+		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUUID),
 		},
 		{

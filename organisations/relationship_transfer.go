@@ -10,7 +10,7 @@ type relationships []struct {
 	RelationshipType string `json:"relationship"`
 }
 
-// TransferRelationships is reponsible for moving relationships from node with destinationUUID to node with sourceUUID
+// TransferRelationships is responsible for moving relationships from node with sourceUUID to node with destinationUUID
 func TransferRelationships(cypherRunner neoutils.CypherRunner, destinationUUID string, sourceUUID string) ([]*neoism.CypherQuery, error) {
 
 	relationshipsFromSourceNode, relationshipsToSourceNode, err := getNodeRelationshipNames(cypherRunner, sourceUUID)
@@ -18,7 +18,6 @@ func TransferRelationships(cypherRunner neoutils.CypherRunner, destinationUUID s
 		return nil, err
 	}
 
-	// NOTE: there will be relationships, like: SUB_ORGANISATION_OF, HAS_CLASSIFICATION or IDENTIFIES which even if will be returned here, at the actual execution phase will no longer exists in the db
 	writeQueries := []*neoism.CypherQuery{}
 	for _, rel := range relationshipsFromSourceNode {
 		transfQuery := constructTransferRelationshipsQuery(sourceUUID, destinationUUID, rel.RelationshipType, true)
@@ -67,7 +66,6 @@ func getNodeRelationshipNames(cypherRunner neoutils.CypherRunner, uuid string) (
 	}
 
 	return relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, nil
-
 }
 
 func constructTransferRelationshipsQuery(fromUUID string, toUUID string, predicate string, toRight bool) *neoism.CypherQuery {
