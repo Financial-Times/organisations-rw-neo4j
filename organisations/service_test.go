@@ -341,7 +341,7 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 	assert.NoError(err)
 }
 
-func getCypherDriver(db *neoism.Database) service {
+func getCypherDriver(db *neoism.Database) Service {
 	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
 	cr.Initialise()
 	return cr
