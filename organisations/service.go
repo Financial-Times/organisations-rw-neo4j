@@ -3,23 +3,20 @@ package organisations
 import (
 	"encoding/json"
 	"fmt"
-	queueConsumer "github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
-	log "github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 )
 
-type service struct {
+type Service struct {
 	cypherRunner   neoutils.CypherRunner
 	indexManager   neoutils.IndexManager
-	consumerConfig *queueConsumer.QueueConfig
 }
 
-func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager, consumerConfig *queueConsumer.QueueConfig) service {
-	return service{cypherRunner, indexManager, consumerConfig}
+func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) Service {
+	return Service{cypherRunner, indexManager}
 }
 
-func (cd service) Initialise() error {
+func (cd Service) Initialise() error {
 	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
 		"Thing":        "uuid",
 		"Concept":      "uuid",
@@ -45,20 +42,8 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 	}
 }
 
-// Takes a kafka message and parses it to an organisation and calls write
-// TODO THIS NEEDS MOVING????
-func (cd service) WriteKafkaMessage(msg queueConsumer.Message) {
-	err := cd.Write(msg.Body)
-
-	if err == nil {
-		log.Infof("Successfully written msg: %s", msg)
-	} else {
-		log.Infof("Error processing msg: %s", msg)
-	}
-}
-
 //Write - Writes an Organisation node
-func (cd service) Write(thing interface{}) error {
+func (cd Service) Write(thing interface{}) error {
 	o := thing.(organisation)
 
 	props := map[string]interface{}{
@@ -172,7 +157,7 @@ func addIdentifierQuery(identifier identifier, uuid string, identifierLabel stri
 }
 
 //Read - Internal Read of an Organisation
-func (cd service) Read(uuid string) (interface{}, bool, error) {
+func (cd Service) Read(uuid string) (interface{}, bool, error) {
 
 	results := []struct {
 		UUID          string       `json:"o.uuid"`
@@ -193,7 +178,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	readQuery := &neoism.CypherQuery{
 
 		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
-            OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) 
+            OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing)
             OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
             OPTIONAL MATCH (o)<-[:IDENTIFIES]-(id:Identifier)
 			with o, ind, par,  collect({authority:id.authority, identifierValue:id.value})as identifiers
@@ -250,7 +235,7 @@ func addType(orgType *OrgType, types *[]string) {
 }
 
 //Delete - Deletes an Organisation
-func (pcd service) Delete(uuid string) (bool, error) {
+func (pcd Service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
@@ -293,7 +278,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	return false, err
 }
 
-func (s service) Check() error {
+func (s Service) Check() error {
 	return neoutils.Check(s.cypherRunner)
 }
 
@@ -301,7 +286,7 @@ type countResult []struct {
 	Count int `json:"c"`
 }
 
-func (s service) Count() (int, error) {
+func (s Service) Count() (int, error) {
 
 	results := countResult{}
 
@@ -317,7 +302,7 @@ func (s service) Count() (int, error) {
 	return results[0].Count, nil
 }
 
-func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
+func (s Service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 	org := organisation{}
 	err := dec.Decode(&org)
 	return org, org.UUID, err
