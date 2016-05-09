@@ -54,13 +54,13 @@ func (cd service) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
-	cleanUpQueriesForOldNodes, err := cd.constructCleanUpOldOrganisationNodesQueries(o.UUID, o.Identifiers)
+	mergingQueriesForOldNodes, err := cd.constructMergingOldOrganisationNodesQueries(o.UUID, o.Identifiers)
 	if err != nil {
 		return err
 	}
 
-	if len(cleanUpQueriesForOldNodes) != 0 {
-		queries = append(queries, cleanUpQueriesForOldNodes...)
+	if len(mergingQueriesForOldNodes) != 0 {
+		queries = append(queries, mergingQueriesForOldNodes...)
 	}
 
 	identifierLabels := map[string]string{
@@ -77,6 +77,9 @@ func (cd service) Write(thing interface{}) error {
 		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
 		queries = append(queries, addIdentifierQuery)
 	}
+	//add upp identifier for the canonical uuid
+	addIdentifierQuery := addIdentifierQuery(identifier{Authority:uppAuthority, IdentifierValue:o.UUID}, o.UUID, identifierLabels[uppAuthority])
+	queries = append(queries, addIdentifierQuery)
 
 	//add type
 	err, stringType := o.Type.String()
@@ -107,32 +110,74 @@ func (cd service) Write(thing interface{}) error {
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-func (cd service) constructCleanUpOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error) {
+func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error) {
 
 	queries := []*neoism.CypherQuery{}
 
-	// clean-up the old organisation nodes (which have now been transformed to UPP identifiers)
 	for _, identifier := range possibleOldNodes {
+		// only nodes with uppAuthority can be older organisation nodes
 		if identifier.Authority == uppAuthority {
-			deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
-			queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
-
-			// re-point the remaining relationships from previous node to the canonical/actual one
-			transferQueries, err := TransferRelationships(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+			nodeExists, err := cd.checkNodeExistence(identifier.IdentifierValue)
 			if err != nil {
 				return nil, err
 			}
-			if len(transferQueries) != 0 {
-				queries = append(queries, transferQueries...)
-			}
+			if nodeExists {
+				deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
+				queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
 
-			// delete oldOrg
-			deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier.IdentifierValue)
-			queries = append(queries, deleteOldOrganisationQuery)
+				// re-point the remaining relationships from previous node to the canonical/actual one
+				transferQueries, err := TransferRelationships(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+				if err != nil {
+					return nil, err
+				}
+				if len(transferQueries) != 0 {
+					queries = append(queries, transferQueries...)
+				}
+
+				// delete oldOrg
+				deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier.IdentifierValue)
+				queries = append(queries, deleteOldOrganisationQuery)
+			}
 		}
 	}
 
 	return queries, nil
+}
+
+func (cd service) checkNodeExistence(uuid string) (bool, error){
+	type result []struct {
+		Count int `json:"nr"`
+	}
+	res := result{}
+
+	checkNodeExistenceQuery := &neoism.CypherQuery{
+		Statement: `match (a:Thing{uuid:{uuid}})
+			           return count(a) as nr`,
+		Parameters: map[string]interface{}{
+			"uuid": uuid,
+		},
+		Result: &res,
+	}
+
+	readQueries := []*neoism.CypherQuery{checkNodeExistenceQuery}
+	err := cd.cypherRunner.CypherBatch(readQueries)
+
+	if err != nil {
+		return false, err
+	}
+
+	if len(res) != 1 {
+		return false, fmt.Errorf("DB inconsistence: one count result should be returned for node with UUID %s.", uuid)
+	}
+
+	if res[0].Count == 0 {
+		return false, nil
+	} else if res[0].Count == 1 {
+		return true, nil
+	} else {
+		return false, fmt.Errorf("DB inconsistence: %d node (instead of max 1) exists with UUID %s.", res[0].Count, uuid)
+	}
+	return true, nil
 }
 
 //Read - Internal Read of an Organisation

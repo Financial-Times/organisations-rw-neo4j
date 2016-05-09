@@ -69,6 +69,23 @@ var fullOrg = organisation{
 	IndustryClassification: industryClassificationUUID,
 }
 
+var fullOrgWrittenForm = organisation{
+	UUID: fullOrgUUID,
+	Type: PublicCompany,
+	//identifiers are in the expected read order
+	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, identifier{Authority:uppAuthority, IdentifierValue:fullOrgUUID},leiCodeIdentifier},
+	ProperName:             "Proper Name",
+	LegalName:              "Legal Name",
+	ShortName:              "Short Name",
+	HiddenLabel:            "Hidden Label",
+	FormerNames:            []string{"Old Name, inc.", "Older Name, inc."},
+	TradeNames:             []string{"Old Trade Name, inc.", "Older Trade Name, inc."},
+	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
+	Aliases:                []string{"alias1", "alias2", "alias3"},
+	ParentOrganisation:     parentOrgUUID,
+	IndustryClassification: industryClassificationUUID,
+}
+
 var minimalOrg = organisation{
 	UUID:        minimalOrgUUID,
 	Type:        Organisation,
@@ -82,11 +99,23 @@ var dupeIdentifierOrg = organisation{
 	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
+
 var oddCharOrg = organisation{
 	UUID:               oddCharOrgUUID,
 	Type:               Company,
 	ProperName:         "TBWA\\Paling Walters Ltd.",
 	Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
+	ParentOrganisation: parentOrgUUID,
+	ShortName:          "TBWA\\Paling Walters",
+	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
+	HiddenLabel:        "TBWA PALING WALTERS LTD",
+}
+
+var oddCharOrgWrittenForm = organisation{
+	UUID:               oddCharOrgUUID,
+	Type:               Company,
+	ProperName:         "TBWA\\Paling Walters Ltd.",
+	Identifiers:        []identifier{fsIdentifier, identifier{Authority:uppAuthority, IdentifierValue:oddCharOrgUUID}, leiCodeIdentifier},
 	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
 	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
@@ -160,6 +189,9 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 
+	// add an identifier for canonical uuid - which will automatically written in store for each node
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:minimalOrgUUID})
+
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
 }
@@ -184,6 +216,9 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
 
 	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
+
+	// add an identifier for canonical uuid - which will automatically written in store for each node
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:canonicalOrgUUID})
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
@@ -252,6 +287,9 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readMentionsQueryForNewOrg, readMentionsQueryForOldOrg}))
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
+
+	// add an identifier for canonical uuid - which will automatically written in store for each node
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:canonicalOrgUUID})
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 
 	assert.Equal(1, len(newPlatformVersion), "platformVersion size differs for new org")
@@ -275,7 +313,8 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUUID)
-	assert.True(reflect.DeepEqual(oddCharOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
+
+	assert.True(reflect.DeepEqual(oddCharOrgWrittenForm, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
 }
 
 func TestReadOrganisation(t *testing.T) {
@@ -291,7 +330,8 @@ func TestReadOrganisation(t *testing.T) {
 
 	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
-	assert.True(reflect.DeepEqual(fullOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
+
+	assert.True(reflect.DeepEqual(fullOrgWrittenForm, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
 }
 
 func TestDeleteNothing(t *testing.T) {

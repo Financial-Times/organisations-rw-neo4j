@@ -20,12 +20,12 @@ func TransferRelationships(cypherRunner neoutils.CypherRunner, destinationUUID s
 
 	writeQueries := []*neoism.CypherQuery{}
 	for _, rel := range relationshipsFromSourceNode {
-		transfQuery := constructTransferRelationshipsQuery(sourceUUID, destinationUUID, rel.RelationshipType, true)
+		transfQuery := constructTransferRelationshipsFromNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
 		writeQueries = append(writeQueries, transfQuery)
 	}
 
 	for _, rel := range relationshipsToSourceNode {
-		transfQuery := constructTransferRelationshipsQuery(sourceUUID, destinationUUID, rel.RelationshipType, false)
+		transfQuery := constructTransferRelationshipsToNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
 		writeQueries = append(writeQueries, transfQuery)
 	}
 
@@ -68,22 +68,31 @@ func getNodeRelationshipNames(cypherRunner neoutils.CypherRunner, uuid string) (
 	return relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, nil
 }
 
-func constructTransferRelationshipsQuery(fromUUID string, toUUID string, predicate string, toRight bool) *neoism.CypherQuery {
-
-	var leftArrow, righArrow string
-	if toRight {
-		righArrow = ">"
-	} else {
-		leftArrow = "<"
-	}
-
+func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Thing {uuid:{fromUUID}})
 					MATCH (newNode:Thing {uuid:{toUUID}})
-					MATCH (oldNode)%s-[oldRel:%s]-%s(p)
-					MERGE (newNode)%s-[newRel:%s]-%s(p)
+					MATCH (oldNode)-[oldRel:%s]->(p)
+					MERGE (newNode)-[newRel:%s]->(p)
 					SET newRel = oldRel
-					DELETE oldRel`, leftArrow, predicate, righArrow, leftArrow, predicate, righArrow),
+					DELETE oldRel`, predicate, predicate),
+
+		Parameters: map[string]interface{}{
+			"fromUUID": fromUUID,
+			"toUUID":   toUUID,
+		},
+	}
+	return transferAnnotationsQuery
+}
+
+func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
+	transferAnnotationsQuery := &neoism.CypherQuery{
+		Statement: fmt.Sprintf(`MATCH (oldNode:Thing {uuid:{fromUUID}})
+					MATCH (newNode:Thing {uuid:{toUUID}})
+					MATCH (oldNode)<-[oldRel:%s]-(p)
+					MERGE (newNode)<-[newRel:%s]-(p)
+					SET newRel = oldRel
+					DELETE oldRel`, predicate, predicate),
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
