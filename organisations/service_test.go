@@ -8,6 +8,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
+	"encoding/json"
 )
 
 const (
@@ -55,7 +57,6 @@ var uppIdentifier = identifier{
 var fullOrg = organisation{
 	UUID: fullOrgUUID,
 	Type: PublicCompany,
-	//identifiers are in the expected read order
 	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
@@ -115,6 +116,7 @@ var oddCharOrgWrittenForm = organisation{
 	UUID:               oddCharOrgUUID,
 	Type:               Company,
 	ProperName:         "TBWA\\Paling Walters Ltd.",
+	//identifiers are in the expected read order
 	Identifiers:        []identifier{fsIdentifier, identifier{Authority:uppAuthority, IdentifierValue:oddCharOrgUUID}, leiCodeIdentifier},
 	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
@@ -230,7 +232,12 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	cypherDriver := getCypherDriver(db)
+
+	annotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, db, "v2")
+	assert.NoError(annotationsRW.Initialise())
+
 	defer cleanDB(db, t, assert)
+	defer deleteAllViaService(db, assert, annotationsRW)
 
 	updatedOrg := organisation{
 		UUID:        canonicalOrgUUID,
@@ -240,64 +247,47 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 		HiddenLabel: "No longer hidden",
 	}
 
-	//add MENTIONS relationship with platformVersion property
-	addMentionsQuery := &neoism.CypherQuery{
-		Statement: `MATCH (c:Thing{uuid:{uuid}})
-			    CREATE (co:Content{uuid:{cuuid}})
-			    CREATE (co)-[r:MENTIONS{platformVersion:"v2"}]->(c)`,
-		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  minimalOrgUUID,
-		},
-	}
-
 	assert.NoError(cypherDriver.Write(minimalOrg))
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
+
+	relMinimalOrg1, relMinimalOrg2, err := getNodeRelationshipNames(cypherDriver.cypherRunner, minimalOrgUUID)
+	assert.Nil(err)
+
+	relUpdatedOrg1, relUpdatedOrg2, err := getNodeRelationshipNames(cypherDriver.cypherRunner, canonicalOrgUUID)
+	assert.Empty(relUpdatedOrg1)
+	assert.Empty(relUpdatedOrg2)
+	assert.Nil(err)
+
+	writeJSONToService(annotationsRW,"./annotationBodyExample.json",minimalOrgUUID,assert)
 	assert.NoError(cypherDriver.Write(updatedOrg))
+
+	relUpdatedOrg1, relUpdatedOrg2, err = getNodeRelationshipNames(cypherDriver.cypherRunner, canonicalOrgUUID)
+	assert.Nil(err)
+	for _, rel := range relMinimalOrg1 {
+		contains(relUpdatedOrg1, rel.RelationshipType)
+	}
+	for _, rel := range relMinimalOrg2 {
+		contains(relUpdatedOrg2, rel.RelationshipType)
+	}
 
 	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
-
-	type version []struct {
-		Version string `json:"r.platformVersion"`
-	}
-
-	oldPlatformVersion := version{}
-	newPlatformVersion := version{}
-
-	readMentionsQueryForOldOrg := &neoism.CypherQuery{
-		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
-		 	    return r.platformVersion`,
-		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  minimalOrgUUID,
-		},
-		Result: &oldPlatformVersion,
-	}
-	readMentionsQueryForNewOrg := &neoism.CypherQuery{
-		Statement: `match (co:Content{uuid:{cuuid}})-[r:MENTIONS]->(c:Thing{uuid:{uuid}})
-		 	    return r.platformVersion`,
-		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  canonicalOrgUUID,
-		},
-		Result: &newPlatformVersion,
-	}
-
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readMentionsQueryForNewOrg, readMentionsQueryForOldOrg}))
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 
 	// add an identifier for canonical uuid - which will automatically written in store for each node
 	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:canonicalOrgUUID})
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
-
-	assert.Equal(1, len(newPlatformVersion), "platformVersion size differs for new org")
-	assert.Equal("v2", newPlatformVersion[0].Version, "platformVersion value differs for new org")
-
-	assert.Equal(0, len(oldPlatformVersion), "platformVersion size differs for old org")
-
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
+}
+
+func writeJSONToService(service annotations.Service, pathToJSONFile string, contentUUID string, assert *assert.Assertions) {
+	f, err := os.Open(pathToJSONFile)
+	assert.NoError(err)
+	dec := json.NewDecoder(f)
+	annotation, errr := service.DecodeJSON(dec)
+	assert.NoError(errr)
+	errrr := service.Write(contentUUID, annotation)
+	assert.NoError(errrr)
 }
 
 func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
@@ -505,4 +495,19 @@ func getCypherDriver(db *neoism.Database) service {
 	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
 	cr.Initialise()
 	return cr
+}
+
+func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotationsRW annotations.Service){
+	annotationsRW.Delete(minimalOrgUUID)
+	annotationsRW.Delete(canonicalOrgUUID)
+	qs := []*neoism.CypherQuery{
+		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "2384fa7a-d514-3d6a-a0ea-3a711f66d0d8"),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "ccaa202e-3d27-3b75-b2f2-261cf5038a1f"),
+		},
+	}
+	err := db.CypherBatch(qs)
+	assert.NoError(err)
 }
