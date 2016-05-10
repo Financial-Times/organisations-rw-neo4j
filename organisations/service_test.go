@@ -1,15 +1,15 @@
 package organisations
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"reflect"
 	"testing"
-	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
-	"encoding/json"
 )
 
 const (
@@ -55,8 +55,8 @@ var uppIdentifier = identifier{
 }
 
 var fullOrg = organisation{
-	UUID: fullOrgUUID,
-	Type: PublicCompany,
+	UUID:                   fullOrgUUID,
+	Type:                   PublicCompany,
 	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
@@ -74,7 +74,7 @@ var fullOrgWrittenForm = organisation{
 	UUID: fullOrgUUID,
 	Type: PublicCompany,
 	//identifiers are in the expected read order
-	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, identifier{Authority:uppAuthority, IdentifierValue:fullOrgUUID},leiCodeIdentifier},
+	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, identifier{Authority: uppAuthority, IdentifierValue: fullOrgUUID}, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
 	ShortName:              "Short Name",
@@ -113,11 +113,11 @@ var oddCharOrg = organisation{
 }
 
 var oddCharOrgWrittenForm = organisation{
-	UUID:               oddCharOrgUUID,
-	Type:               Company,
-	ProperName:         "TBWA\\Paling Walters Ltd.",
+	UUID:       oddCharOrgUUID,
+	Type:       Company,
+	ProperName: "TBWA\\Paling Walters Ltd.",
 	//identifiers are in the expected read order
-	Identifiers:        []identifier{fsIdentifier, identifier{Authority:uppAuthority, IdentifierValue:oddCharOrgUUID}, leiCodeIdentifier},
+	Identifiers:        []identifier{fsIdentifier, identifier{Authority: uppAuthority, IdentifierValue: oddCharOrgUUID}, leiCodeIdentifier},
 	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
 	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
@@ -192,7 +192,7 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 
 	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:minimalOrgUUID})
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: minimalOrgUUID})
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
@@ -220,7 +220,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
 	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
 
 	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:canonicalOrgUUID})
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: canonicalOrgUUID})
 
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
@@ -257,7 +257,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	assert.Empty(relUpdatedOrg2)
 	assert.Nil(err)
 
-	writeJSONToService(annotationsRW,"./annotationBodyExample.json",minimalOrgUUID,assert)
+	writeJSONToService(annotationsRW, "./annotationBodyExample.json", minimalOrgUUID, assert)
 	assert.NoError(cypherDriver.Write(updatedOrg))
 
 	relUpdatedOrg1, relUpdatedOrg2, err = getNodeRelationshipNames(cypherDriver.cypherRunner, canonicalOrgUUID)
@@ -275,7 +275,7 @@ func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTran
 	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
 
 	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority:uppAuthority, IdentifierValue:canonicalOrgUUID})
+	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: canonicalOrgUUID})
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
 }
@@ -497,9 +497,11 @@ func getCypherDriver(db *neoism.Database) service {
 	return cr
 }
 
-func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotationsRW annotations.Service){
-	annotationsRW.Delete(minimalOrgUUID)
-	annotationsRW.Delete(canonicalOrgUUID)
+func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotationsRW annotations.Service) {
+	_, err := annotationsRW.Delete(minimalOrgUUID)
+	assert.Nil(err)
+	_, err = annotationsRW.Delete(canonicalOrgUUID)
+	assert.Nil(err)
 	qs := []*neoism.CypherQuery{
 		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "2384fa7a-d514-3d6a-a0ea-3a711f66d0d8"),
@@ -508,6 +510,6 @@ func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotat
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "ccaa202e-3d27-3b75-b2f2-261cf5038a1f"),
 		},
 	}
-	err := db.CypherBatch(qs)
+	err = db.CypherBatch(qs)
 	assert.NoError(err)
 }

@@ -78,7 +78,7 @@ func (cd service) Write(thing interface{}) error {
 		queries = append(queries, addIdentifierQuery)
 	}
 	//add upp identifier for the canonical uuid
-	addIdentifierQuery := addIdentifierQuery(identifier{Authority:uppAuthority, IdentifierValue:o.UUID}, o.UUID, identifierLabels[uppAuthority])
+	addIdentifierQuery := addIdentifierQuery(identifier{Authority: uppAuthority, IdentifierValue: o.UUID}, o.UUID, identifierLabels[uppAuthority])
 	queries = append(queries, addIdentifierQuery)
 
 	//add type
@@ -144,7 +144,7 @@ func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID stri
 	return queries, nil
 }
 
-func (cd service) checkNodeExistence(uuid string) (bool, error){
+func (cd service) checkNodeExistence(uuid string) (bool, error) {
 	type result []struct {
 		Count int `json:"nr"`
 	}
@@ -167,7 +167,7 @@ func (cd service) checkNodeExistence(uuid string) (bool, error){
 	}
 
 	if len(res) != 1 {
-		return false, fmt.Errorf("DB inconsistence: one count result should be returned for node with UUID %s.", uuid)
+		return false, fmt.Errorf("DB inconsistence: one count result should be returned for node with UUID %s", uuid)
 	}
 
 	if res[0].Count == 0 {
@@ -175,9 +175,8 @@ func (cd service) checkNodeExistence(uuid string) (bool, error){
 	} else if res[0].Count == 1 {
 		return true, nil
 	} else {
-		return false, fmt.Errorf("DB inconsistence: %d node (instead of max 1) exists with UUID %s.", res[0].Count, uuid)
+		return false, fmt.Errorf("DB inconsistence: %d node (instead of max 1) exists with UUID %s", res[0].Count, uuid)
 	}
-	return true, nil
 }
 
 //Read - Internal Read of an Organisation

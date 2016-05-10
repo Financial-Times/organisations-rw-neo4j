@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-const TEST_RELATIONSHIP_LEFT_TO_RIGHT = "TEST_RELATIONSHIP_1"
-const TEST_RELATIONSHIP_RIGHT_TO_LEFT = "TEST_RELATIONSHIP_2"
+const testRelationshipLeftToRight = "TEST_RELATIONSHIP_1"
+const testRelationshipRightToLeft = "TEST_RELATIONSHIP_2"
 
 func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 	var tests = []struct {
@@ -20,12 +20,12 @@ func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 		{
 			"3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
 			"ecd7319d-92f1-3c0a-9912-0b91186bf555",
-			TEST_RELATIONSHIP_LEFT_TO_RIGHT,
+			testRelationshipLeftToRight,
 			&neoism.CypherQuery{
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
 				MATCH (newNode:Thing {uuid:{toUUID}})
-				MATCH (oldNode)-[oldRel:`+TEST_RELATIONSHIP_LEFT_TO_RIGHT+`]->(p)
-				MERGE (newNode)-[newRel:`+TEST_RELATIONSHIP_LEFT_TO_RIGHT+`]->(p)
+				MATCH (oldNode)-[oldRel:` + testRelationshipLeftToRight + `]->(p)
+				MERGE (newNode)-[newRel:` + testRelationshipLeftToRight + `]->(p)
 				SET newRel = oldRel
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
@@ -61,12 +61,12 @@ func TestConstructTransferRelationshipsToNodeQuery(t *testing.T) {
 		{
 			"3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
 			"ecd7319d-92f1-3c0a-9912-0b91186bf555",
-			TEST_RELATIONSHIP_RIGHT_TO_LEFT,
+			testRelationshipRightToLeft,
 			&neoism.CypherQuery{
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
 				MATCH (newNode:Thing {uuid:{toUUID}})
-				MATCH (oldNode)<-[oldRel:`+TEST_RELATIONSHIP_RIGHT_TO_LEFT+`]-(p)
-				MERGE (newNode)<-[newRel:`+TEST_RELATIONSHIP_RIGHT_TO_LEFT+`]-(p)
+				MATCH (oldNode)<-[oldRel:` + testRelationshipRightToLeft + `]-(p)
+				MERGE (newNode)<-[newRel:` + testRelationshipRightToLeft + `]-(p)
 				SET newRel = oldRel
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
@@ -101,8 +101,8 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 	addMentionsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (c:Thing{uuid:{uuid}})
 			    CREATE (co:Content{uuid:{cuuid}})
-			    CREATE (co)-[:`+TEST_RELATIONSHIP_LEFT_TO_RIGHT+`{someProperty:"someValue"}]->(c)
-			    CREATE (co)<-[:`+TEST_RELATIONSHIP_RIGHT_TO_LEFT+`]-(c)`,
+			    CREATE (co)-[:` + testRelationshipLeftToRight + `{someProperty:"someValue"}]->(c)
+			    CREATE (co)<-[:` + testRelationshipRightToLeft + `]-(c)`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUUID,
 			"uuid":  minimalOrgUUID,
@@ -118,8 +118,8 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 	assert.True(len(relationshipsFromNodeWithUUID) >= 1, "Expected -> relationship length differs from actual length")
 	assert.True(len(relationshipsToNodeWithUUID) >= 1, "Expected <- relationship length differs from actual length")
 
-	assert.True(contains(relationshipsFromNodeWithUUID, TEST_RELATIONSHIP_RIGHT_TO_LEFT))
-	assert.True(contains(relationshipsToNodeWithUUID, TEST_RELATIONSHIP_LEFT_TO_RIGHT))
+	assert.True(contains(relationshipsFromNodeWithUUID, testRelationshipRightToLeft))
+	assert.True(contains(relationshipsToNodeWithUUID, testRelationshipLeftToRight))
 }
 
 func TestTransferRelationships(t *testing.T) {
@@ -131,8 +131,8 @@ func TestTransferRelationships(t *testing.T) {
 	addMentionsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (c:Thing{uuid:{uuid}})
 			    CREATE (co:Content{uuid:{cuuid}})
-			    CREATE (co)-[:`+TEST_RELATIONSHIP_LEFT_TO_RIGHT+`{someProperty:"someValue"}]->(c)
-			    CREATE (co)<-[:`+TEST_RELATIONSHIP_RIGHT_TO_LEFT+`]-(c)`,
+			    CREATE (co)-[:` + testRelationshipLeftToRight + `{someProperty:"someValue"}]->(c)
+			    CREATE (co)<-[:` + testRelationshipRightToLeft + `]-(c)`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUUID,
 			"uuid":  minimalOrgUUID,
@@ -145,8 +145,8 @@ func TestTransferRelationships(t *testing.T) {
 	assert.NoError(cypherDriver.Write(fullOrg))
 	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, fullOrgUUID)
 	assert.NoError(err)
-	assert.False(contains(relationshipsFromNewNode, TEST_RELATIONSHIP_RIGHT_TO_LEFT))
-	assert.False(contains(relationshipsToNewNode, TEST_RELATIONSHIP_RIGHT_TO_LEFT))
+	assert.False(contains(relationshipsFromNewNode, testRelationshipRightToLeft))
+	assert.False(contains(relationshipsToNewNode, testRelationshipRightToLeft))
 
 	//transfer relationships from the one above to the on other uuid
 	transferQuery, err := TransferRelationships(cypherDriver.cypherRunner, fullOrgUUID, minimalOrgUUID)
@@ -164,8 +164,8 @@ func TestTransferRelationships(t *testing.T) {
 	assert.Equal(0, len(relationshipsToOldNode))
 
 	//new relationships for the new node
-	assert.True(contains(relationshipsFromNewNode, TEST_RELATIONSHIP_RIGHT_TO_LEFT))
-	assert.True(contains(relationshipsToNewNode, TEST_RELATIONSHIP_LEFT_TO_RIGHT))
+	assert.True(contains(relationshipsFromNewNode, testRelationshipRightToLeft))
+	assert.True(contains(relationshipsToNewNode, testRelationshipLeftToRight))
 
 	//verify that properties has been trasnferred
 	type property []struct {
@@ -174,7 +174,7 @@ func TestTransferRelationships(t *testing.T) {
 
 	transferredProperty := property{}
 	readRelationshipPropertyQuery := &neoism.CypherQuery{
-		Statement: `match (co:Content{uuid:{cuuid}})-[r:`+TEST_RELATIONSHIP_LEFT_TO_RIGHT+`]->(c:Thing{uuid:{uuid}})
+		Statement: `match (co:Content{uuid:{cuuid}})-[r:` + testRelationshipLeftToRight + `]->(c:Thing{uuid:{uuid}})
  				return r.someProperty`,
 		Parameters: map[string]interface{}{
 			"cuuid": contentUUID,
