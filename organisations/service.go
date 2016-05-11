@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type service struct {
@@ -106,7 +108,7 @@ func (cd service) Write(thing interface{}) error {
 		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
-
+	log.Infof("Queries for uuid: %s are: \n %s", o.UUID, queries)
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
