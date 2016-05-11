@@ -57,8 +57,20 @@ We run queries in batches. If a batch fails, all failing requests will get a 500
 
 Invalid json body input, or uuids that don't match between the path and the body will result in a 400 bad request response.
 
-Example:
+Example1:
 `curl -XPUT -H "X-Request-Id: 123" -H "Content-Type: application/json" localhost:8080/organisations/3fa70485-3a57-3b9b-9449-774b001cd965 --data '{"uuid": "ecd7319d-92f1-3c0a-9912-0b91186bf27b", "type": "PublicCompany", "properName": "The E.W. Scripps Co.", "legalName": "The E. W. Scripps Company", "shortName": "The EW Scripps", "hiddenLabel": "EW SCRIPPS CO", "identifiers": [ { "authority": "http://api.ft.com/system/LEI", "identifierValue": "549300U1OW41QPKYW028" } ], "aliases": [ "EW Scripps Company", "E.W. Scripps", "Scripps", "EW Scripps Co", "E.W. Scripps Company", "Scripps Company", "EW Scripps", "The E.W. Scripps Company", "Scripps EW", "E.W. Scripps Co" ], "industryClassification": "3c980022-6253-324d-ba9f-abfb71e39bf3" }'`
+
+Note: inserting the above organisation results in:  
+    - writing an organisation node with the above properties and relationships in neo4j (normal behaviour)  
+    - writing the IDENTIFIES relationship for:  
+        * all the above mentioned identifier nodes  
+        * an identifier node corresponding to the organisation itself with {"authority": "http://api.ft.com/system/FT-UPP", "identifierValue": "ecd7319d-92f1-3c0a-9912-0b91186bf27b"}  
+    
+Example2:
+ `curl -XPUT -H "X-Request-Id: 123" -H "Content-Type: application/json" localhost:8080/organisations/3fa70485-3a57-3b9b-9449-774b001cd965 --data '{"uuid": "ecd7319d-92f1-3c0a-9912-0b91186bf27b", "type": "PublicCompany", "properName": "The E.W. Scripps Co.", "legalName": "The E. W. Scripps Company", "shortName": "The EW Scripps", "hiddenLabel": "EW SCRIPPS CO", "identifiers": [ { "authority": "http://api.ft.com/system/LEI", "identifierValue": "549300U1OW41QPKYW028" }, { "authority": "http://api.ft.com/system/FT-UPP", "identifierValue": "857cfe0f-82aa-429a-ab80-854c93e4111b" } ], "aliases": [ "EW Scripps Company", "E.W. Scripps", "Scripps", "EW Scripps Co", "E.W. Scripps Company", "Scripps Company", "EW Scripps", "The E.W. Scripps Company", "Scripps EW", "E.W. Scripps Co" ], "industryClassification": "3c980022-6253-324d-ba9f-abfb71e39bf3" }'`
+
+Note: if there are identifiers with `http://api.ft.com/system/FT-UPP` authority in the identifier lists (called alternativeIdentifiers):  
+    - besides the props and relationships above, the organisation node corresponding to the identifier value (here the node with `857cfe0f-82aa-429a-ab80-854c93e4111b` - if exists) should be deleted, and all its relationships should be transferred to the newly created organisation (the one with canonical uuid, here: `ecd7319d-92f1-3c0a-9912-0b91186bf27b`)  
 
 ### GET
 Thie internal read should return what got written (i.e., there isn't a public read for organisations and this is not intended to ever be public either)
