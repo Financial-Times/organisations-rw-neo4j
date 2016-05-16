@@ -29,7 +29,7 @@ func constructDeleteEntityRelationshipQuery(uuid string) *neoism.CypherQuery {
 		OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
 		OPTIONAL MATCH (o)-[soo:SUB_ORGANISATION_OF]->(p)
 		OPTIONAL MATCH (o)<-[iden:IDENTIFIES]-(i)
-		DELETE hc, soo, iden, i`,
+		DELETE hc, soo, iden`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
 		},
@@ -85,7 +85,7 @@ func constructCreateIndustryClassificationQuery(uuid string, industryClassificat
 func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
 
 	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					CREATE (i:Identifier {value:{value} , authority:{authority}})
+					MERGE (i:Identifier {value:{value} , authority:{authority}})
 					CREATE (o)<-[:IDENTIFIES]-(i)
 					set i : %s `, identifierLabel)
 

@@ -263,7 +263,7 @@ func (cd service) Delete(uuid string) (bool, error) {
 			MATCH (org:Thing {uuid: {uuid}})
 			OPTIONAL MATCH (org)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE org:Concept:Organisation:Company:PublicCompany
-			DELETE iden, i
+			DELETE iden
 			SET org={ uuid: {uuid}}
 		`,
 		Parameters: map[string]interface{}{
