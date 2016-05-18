@@ -18,7 +18,8 @@ const (
 	oddCharOrgUUID               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
 	canonicalOrgUUID             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
 	contentUUID                  = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
-	dupeIdentifierOrgUUID        = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
+	dupeLeiIdentifierOrgUUID     = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
+	dupeOtherIdentifierOrgUUID   = "4b89a949-a032-4114-9a8c-f59c37170d65"
 	parentOrgUUID                = "de38231e-e481-4958-b470-e124b2ef5a34"
 	industryClassificationUUID   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
 	authorityNotSupportedOrgUUID = "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc"
@@ -94,10 +95,17 @@ var minimalOrg = organisation{
 	ProperName:  "Minimal Org Proper Name",
 }
 
-var dupeIdentifierOrg = organisation{
-	UUID:        dupeIdentifierOrgUUID,
+var dupeLeiIdentifierOrg = organisation{
+	UUID:        dupeLeiIdentifierOrgUUID,
 	Type:        Company,
 	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
+	ProperName:  "Dupe Identifier Proper Name",
+}
+
+var dupeOtherIdentifierOrg = organisation{
+	UUID:        dupeOtherIdentifierOrgUUID,
+	Type:        Company,
+	Identifiers: []identifier{fsIdentifierOther, tmeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 
@@ -378,6 +386,31 @@ func TestDeleteNoRelationships(t *testing.T) {
 	assert.Empty(result)
 }
 
+// Temporary solution, until the organisation lifecycle will be correctly managed.
+// This currently can happen as we currently don't support the lifecycle of an organisation
+// For example "Bobs Burgers Ltd." spends money on applying for an LEI code and then floats and effectively becomes a
+// new organisation "Bobs Burgers Plc." and rather than spend money again on getting an LEI just uses the one it applied
+// for as "Bobs Burgers Ltd." Until we deal with this lifecycle we should retain the relationship to both orgs.
+func TestToCheckYouCanCreateOrganisationWithDuplicateLeiIdentifier(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+	assert.NoError(cypherDriver.Write(fullOrg))
+	err := cypherDriver.Write(dupeLeiIdentifierOrg)
+	assert.Nil(err)
+
+	_, found, err := cypherDriver.Read(fullOrgUUID)
+	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
+
+	_, found, err = cypherDriver.Read(dupeLeiIdentifierOrgUUID)
+	assert.NoError(err, "Error finding organisation for uuid %s", dupeLeiIdentifierOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", dupeLeiIdentifierOrgUUID)
+}
+
+// The constraint is valid for tme, factset and upp identifiers
 func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
@@ -385,7 +418,7 @@ func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T)
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert)
 	assert.NoError(cypherDriver.Write(fullOrg))
-	err := cypherDriver.Write(dupeIdentifierOrg)
+	err := cypherDriver.Write(dupeOtherIdentifierOrg)
 	assert.Error(err)
 	assert.IsType(&neoutils.ConstraintViolationError{}, err)
 }
@@ -417,7 +450,7 @@ func checkDbClean(db *neoism.Database, t *testing.T) {
 			MATCH (org:Thing) WHERE org.uuid in {uuids} RETURN org.uuid
 		`,
 		Parameters: neoism.Props{
-			"uuids": []string{fullOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeIdentifierOrgUUID},
+			"uuids": []string{fullOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID},
 		},
 		Result: &result,
 	}
@@ -474,7 +507,10 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUUID),
 		},
 		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeIdentifierOrgUUID),
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeLeiIdentifierOrgUUID),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeOtherIdentifierOrgUUID),
 		},
 		{
 			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", parentOrgUUID),

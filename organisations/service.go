@@ -22,7 +22,9 @@ func (cd service) Initialise() error {
 		"Thing":        "uuid",
 		"Concept":      "uuid",
 		"Organisation": "uuid",
-		"Identifier":   "value"})
+		"FactsetIdentifier":   "value",
+		"TMEIdentifier" : "value",
+		"UPPIdentifier": "value"})
 }
 
 func setProps(props *map[string]interface{}, item *string, propName string) {
