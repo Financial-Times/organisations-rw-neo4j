@@ -14,7 +14,6 @@ import (
 
 const (
 	fullOrgUUID                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
-	privateOrgUUID               = "9e01380d-ac20-48a4-b187-88dc57f37e48"
 	minimalOrgUUID               = "33f93f25-3301-417e-9b20-50b27d215617"
 	oddCharOrgUUID               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
 	canonicalOrgUUID             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
@@ -35,11 +34,6 @@ var fsIdentifierOther = identifier{
 	IdentifierValue: "identifierOtherValue",
 }
 
-var fsIdentifierAnother = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "anotherIdentifierValue",
-}
-
 var fsIdentifierMinimal = identifier{
 	Authority:       fsAuthority,
 	IdentifierValue: "identifierMinimalValue",
@@ -53,11 +47,6 @@ var leiCodeIdentifier = identifier{
 var tmeIdentifier = identifier{
 	Authority:       tmeAuthority,
 	IdentifierValue: "tmeIdentifier",
-}
-
-var tmeIdentifierAnother = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifierAnother",
 }
 
 var uppIdentifier = identifier{
@@ -78,21 +67,6 @@ var fullOrg = organisation{
 	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
 	Aliases:                []string{"alias1", "alias2", "alias3"},
 	ParentOrganisation:     parentOrgUUID,
-	IndustryClassification: industryClassificationUUID,
-}
-
-var privateOrg = organisation{
-	UUID:                   privateOrgUUID,
-	Type:                   Organisation,
-	Identifiers:            []identifier{fsIdentifierAnother, tmeIdentifierAnother, leiCodeIdentifier},
-	ProperName:             "Proper Name Ltd.",
-	LegalName:              "Legal Name Ltd.",
-	ShortName:              "Short Name Ltd.",
-	HiddenLabel:            "Hidden Label Ltd.",
-	FormerNames:            []string{"Old Name Ltd., Ltd.", "Older Name, Ltd.."},
-	TradeNames:             []string{"Old Trade Name Ltd., Ltd..", "Older Trade Name Ltd., Ltd.."},
-	LocalNames:             []string{"Oldé Name Ltd., Ltd..", "Tradé Name Ltd."},
-	Aliases:                []string{"alias1", "alias2", "alias3"},
 	IndustryClassification: industryClassificationUUID,
 }
 
@@ -333,31 +307,6 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	assert.True(reflect.DeepEqual(oddCharOrgWrittenForm, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
 }
 
-// This currently can happen as we currently don't support the lifecycle of an organisation
-// For example "Bobs Burgers Ltd." spends money on applying for an LEI code and then floats and effectively becomes a
-// new organisation "Bobs Burgers Plc." and rather than spend money again on getting an LEI just uses the one it applied
-// for as "Bobs Burgers Ltd." Until we deal with this lifecycle we should retain the relationship to both orgs
-func TestWritesTwoOrgsWithTheSameLegalEntityIdentifier(t *testing.T) {
-	assert := assert.New(t)
-
-	db := getDatabaseConnectionAndCheckClean(t, assert)
-	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
-
-	assert.NoError(cypherDriver.Write(fullOrg))
-	assert.NoError(cypherDriver.Write(privateOrg))
-
-	_, found, err := cypherDriver.Read(privateOrgUUID)
-
-	assert.NoError(err, "Error finding organisation for uuid %s", privateOrgUUID)
-	assert.True(found, "Didn't find organisation for uuid %s", privateOrgUUID)
-
-	_, found2, err2 := cypherDriver.Read(fullOrgUUID)
-
-	assert.NoError(err2, "Error finding organisation for uuid %s", fullOrgUUID)
-	assert.True(found2, "Didn't find organisation for uuid %s", fullOrgUUID)
-}
-
 func TestReadOrganisation(t *testing.T) {
 	assert := assert.New(t)
 
@@ -427,6 +376,18 @@ func TestDeleteNoRelationships(t *testing.T) {
 
 	assert.NoError(db.Cypher(&getOrg))
 	assert.Empty(result)
+}
+
+func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert)
+	assert.NoError(cypherDriver.Write(fullOrg))
+	err := cypherDriver.Write(dupeIdentifierOrg)
+	assert.Error(err)
+	assert.IsType(&neoutils.ConstraintViolationError{}, err)
 }
 
 func TestCount(t *testing.T) {
