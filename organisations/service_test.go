@@ -1,29 +1,27 @@
 package organisations
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"reflect"
 	"testing"
 )
 
 const (
 	fullOrgUUID                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
+	privateOrgUUID               = "9e01380d-ac20-48a4-b187-88dc57f37e48"
 	minimalOrgUUID               = "33f93f25-3301-417e-9b20-50b27d215617"
 	oddCharOrgUUID               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
-	canonicalOrgUUID             = "3f646c05-3e20-420a-b0e4-6fc1c9fb3a02"
-	contentUUID                  = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
 	dupeLeiIdentifierOrgUUID     = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
 	dupeOtherIdentifierOrgUUID   = "4b89a949-a032-4114-9a8c-f59c37170d65"
 	parentOrgUUID                = "de38231e-e481-4958-b470-e124b2ef5a34"
 	industryClassificationUUID   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
 	authorityNotSupportedOrgUUID = "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc"
 )
+
+var uuidsToClean = []string{fullOrgUUID, privateOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID, industryClassificationUUID, parentOrgUUID}
 
 var fsIdentifier = identifier{
 	Authority:       fsAuthority,
@@ -33,6 +31,11 @@ var fsIdentifier = identifier{
 var fsIdentifierOther = identifier{
 	Authority:       fsAuthority,
 	IdentifierValue: "identifierOtherValue",
+}
+
+var fsIdentifierAnother = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "anotherIdentifierValue",
 }
 
 var fsIdentifierMinimal = identifier{
@@ -50,15 +53,45 @@ var tmeIdentifier = identifier{
 	IdentifierValue: "tmeIdentifier",
 }
 
-var uppIdentifier = identifier{
+var tmeIdentifierAnother = identifier{
+	Authority:       tmeAuthority,
+	IdentifierValue: "tmeIdentifierAnother",
+}
+
+var uppFullOrgIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: fullOrgUUID,
+}
+
+var uppMinimalOrgIdentifier = identifier{
 	Authority:       uppAuthority,
 	IdentifierValue: minimalOrgUUID,
+}
+
+var uppPrivateOrgIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: privateOrgUUID,
+}
+
+var uppOddCharOrgIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: oddCharOrgUUID,
+}
+
+var uppDupeLeiIdentifierOrgIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: dupeLeiIdentifierOrgUUID,
+}
+
+var uppDupeOtherIdentifierOrgIdentifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: dupeOtherIdentifierOrgUUID,
 }
 
 var fullOrg = organisation{
 	UUID:                   fullOrgUUID,
 	Type:                   PublicCompany,
-	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, leiCodeIdentifier},
+	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, uppFullOrgIdentifier, leiCodeIdentifier},
 	ProperName:             "Proper Name",
 	LegalName:              "Legal Name",
 	ShortName:              "Short Name",
@@ -71,41 +104,39 @@ var fullOrg = organisation{
 	IndustryClassification: industryClassificationUUID,
 }
 
-var fullOrgWrittenForm = organisation{
-	UUID: fullOrgUUID,
-	Type: PublicCompany,
-	//identifiers are in the expected read order
-	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, identifier{Authority: uppAuthority, IdentifierValue: fullOrgUUID}, leiCodeIdentifier},
-	ProperName:             "Proper Name",
-	LegalName:              "Legal Name",
-	ShortName:              "Short Name",
-	HiddenLabel:            "Hidden Label",
-	FormerNames:            []string{"Old Name, inc.", "Older Name, inc."},
-	TradeNames:             []string{"Old Trade Name, inc.", "Older Trade Name, inc."},
-	LocalNames:             []string{"Oldé Name, inc.", "Tradé Name"},
+var privateOrg = organisation{
+	UUID:                   privateOrgUUID,
+	Type:                   Organisation,
+	Identifiers:            []identifier{fsIdentifierAnother, tmeIdentifierAnother, uppPrivateOrgIdentifier, leiCodeIdentifier},
+	ProperName:             "Proper Name Ltd.",
+	LegalName:              "Legal Name Ltd.",
+	ShortName:              "Short Name Ltd.",
+	HiddenLabel:            "Hidden Label Ltd.",
+	FormerNames:            []string{"Old Name Ltd., Ltd.", "Older Name, Ltd.."},
+	TradeNames:             []string{"Old Trade Name Ltd., Ltd..", "Older Trade Name Ltd., Ltd.."},
+	LocalNames:             []string{"Oldé Name Ltd., Ltd..", "Tradé Name Ltd."},
 	Aliases:                []string{"alias1", "alias2", "alias3"},
-	ParentOrganisation:     parentOrgUUID,
 	IndustryClassification: industryClassificationUUID,
 }
 
 var minimalOrg = organisation{
 	UUID:        minimalOrgUUID,
 	Type:        Organisation,
-	Identifiers: []identifier{fsIdentifierMinimal},
+	Identifiers: []identifier{fsIdentifierMinimal, uppMinimalOrgIdentifier},
 	ProperName:  "Minimal Org Proper Name",
 }
 
 var dupeLeiIdentifierOrg = organisation{
 	UUID:        dupeLeiIdentifierOrgUUID,
 	Type:        Company,
-	Identifiers: []identifier{fsIdentifierOther, leiCodeIdentifier},
+	Identifiers: []identifier{fsIdentifierOther, uppDupeLeiIdentifierOrgIdentifier, leiCodeIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 
 var dupeOtherIdentifierOrg = organisation{
 	UUID:        dupeOtherIdentifierOrgUUID,
 	Type:        Company,
-	Identifiers: []identifier{fsIdentifierOther, tmeIdentifier},
+	Identifiers: []identifier{fsIdentifierOther, tmeIdentifier, uppDupeOtherIdentifierOrgIdentifier},
 	ProperName:  "Dupe Identifier Proper Name",
 }
 
@@ -113,19 +144,7 @@ var oddCharOrg = organisation{
 	UUID:               oddCharOrgUUID,
 	Type:               Company,
 	ProperName:         "TBWA\\Paling Walters Ltd.",
-	Identifiers:        []identifier{fsIdentifier, leiCodeIdentifier},
-	ParentOrganisation: parentOrgUUID,
-	ShortName:          "TBWA\\Paling Walters",
-	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
-	HiddenLabel:        "TBWA PALING WALTERS LTD",
-}
-
-var oddCharOrgWrittenForm = organisation{
-	UUID:       oddCharOrgUUID,
-	Type:       Company,
-	ProperName: "TBWA\\Paling Walters Ltd.",
-	//identifiers are in the expected read order
-	Identifiers:        []identifier{fsIdentifier, identifier{Authority: uppAuthority, IdentifierValue: oddCharOrgUUID}, leiCodeIdentifier},
+	Identifiers:        []identifier{fsIdentifier, uppOddCharOrgIdentifier, leiCodeIdentifier},
 	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
 	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
@@ -135,9 +154,9 @@ var oddCharOrgWrittenForm = organisation{
 func TestWriteNewOrganisation(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
@@ -150,9 +169,9 @@ func TestWriteNewOrganisation(t *testing.T) {
 func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	var unsupporterIdentifier = identifier{
 		Authority:       "unsupported",
@@ -177,9 +196,9 @@ func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
 func TestWriteWillUpdateOrg(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.NoError(cypherDriver.Write(minimalOrg))
 
@@ -199,111 +218,16 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 
 	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
 
-	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: minimalOrgUUID})
-
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
-}
-
-func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodes(t *testing.T) {
-	assert := assert.New(t)
-
-	db := getDatabaseConnectionAndCheckClean(t, assert)
-	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
-
-	updatedOrg := organisation{
-		UUID:        canonicalOrgUUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsIdentifier, uppIdentifier},
-		ProperName:  "Updated Name",
-		HiddenLabel: "No longer hidden",
-	}
-
-	assert.NoError(cypherDriver.Write(minimalOrg))
-	assert.NoError(cypherDriver.Write(updatedOrg))
-
-	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
-	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
-
-	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: canonicalOrgUUID})
-
-	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
-	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
-	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
-}
-
-func TestWriteWillWriteCanonicalOrgAndDeleteAlternativeNodesWithRelationshipTransfer(t *testing.T) {
-	assert := assert.New(t)
-
-	db := getDatabaseConnectionAndCheckClean(t, assert)
-	cypherDriver := getCypherDriver(db)
-
-	annotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, db, "v2")
-	assert.NoError(annotationsRW.Initialise())
-
-	defer cleanDB(db, t, assert)
-	defer deleteAllViaService(db, assert, annotationsRW)
-
-	updatedOrg := organisation{
-		UUID:        canonicalOrgUUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsIdentifier, uppIdentifier},
-		ProperName:  "Updated Name",
-		HiddenLabel: "No longer hidden",
-	}
-
-	assert.NoError(cypherDriver.Write(minimalOrg))
-
-	relMinimalOrg1, relMinimalOrg2, err := getNodeRelationshipNames(cypherDriver.cypherRunner, minimalOrgUUID)
-	assert.Nil(err)
-
-	relUpdatedOrg1, relUpdatedOrg2, err := getNodeRelationshipNames(cypherDriver.cypherRunner, canonicalOrgUUID)
-	assert.Empty(relUpdatedOrg1)
-	assert.Empty(relUpdatedOrg2)
-	assert.Nil(err)
-
-	writeJSONToService(annotationsRW, "./annotationBodyExample.json", minimalOrgUUID, assert)
-	assert.NoError(cypherDriver.Write(updatedOrg))
-
-	relUpdatedOrg1, relUpdatedOrg2, err = getNodeRelationshipNames(cypherDriver.cypherRunner, canonicalOrgUUID)
-	assert.Nil(err)
-	for _, rel := range relMinimalOrg1 {
-		contains(relUpdatedOrg1, rel.RelationshipType)
-	}
-	for _, rel := range relMinimalOrg2 {
-		contains(relUpdatedOrg2, rel.RelationshipType)
-	}
-
-	storedMinimalOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
-	storedUpdatedOrg, _, _ := cypherDriver.Read(canonicalOrgUUID)
-
-	assert.Equal(organisation{}, storedMinimalOrg, "org should have been deleted")
-
-	// add an identifier for canonical uuid - which will automatically written in store for each node
-	updatedOrg.Identifiers = append(updatedOrg.Identifiers, identifier{Authority: uppAuthority, IdentifierValue: canonicalOrgUUID})
-	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
-	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
-}
-
-func writeJSONToService(service annotations.Service, pathToJSONFile string, contentUUID string, assert *assert.Assertions) {
-	f, err := os.Open(pathToJSONFile)
-	assert.NoError(err)
-	dec := json.NewDecoder(f)
-	annotation, errr := service.DecodeJSON(dec)
-	assert.NoError(errr)
-	errrr := service.Write(contentUUID, annotation)
-	assert.NoError(errrr)
 }
 
 func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.NoError(cypherDriver.Write(oddCharOrg))
 
@@ -312,15 +236,40 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUUID)
 
-	assert.True(reflect.DeepEqual(oddCharOrgWrittenForm, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
+	assert.True(reflect.DeepEqual(oddCharOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", oddCharOrg, storedOrg))
+}
+
+// This currently can happen as we currently don't support the lifecycle of an organisation
+// For example "Bobs Burgers Ltd." spends money on applying for an LEI code and then floats and effectively becomes a
+// new organisation "Bobs Burgers Plc." and rather than spend money again on getting an LEI just uses the one it applied
+// for as "Bobs Burgers Ltd." Until we deal with this lifecycle we should retain the relationship to both orgs
+func TestWritesTwoOrgsWithTheSameLegalEntityIdentifier(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert, uuidsToClean)
+
+	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(privateOrg))
+
+	_, found, err := cypherDriver.Read(privateOrgUUID)
+
+	assert.NoError(err, "Error finding organisation for uuid %s", privateOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", privateOrgUUID)
+
+	_, found2, err2 := cypherDriver.Read(fullOrgUUID)
+
+	assert.NoError(err2, "Error finding organisation for uuid %s", fullOrgUUID)
+	assert.True(found2, "Didn't find organisation for uuid %s", fullOrgUUID)
 }
 
 func TestReadOrganisation(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.NoError(cypherDriver.Write(fullOrg))
 
@@ -329,13 +278,13 @@ func TestReadOrganisation(t *testing.T) {
 	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
 
-	assert.True(reflect.DeepEqual(fullOrgWrittenForm, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
+	assert.True(reflect.DeepEqual(fullOrg, storedOrg), fmt.Sprintf("organisations should be the same \n EXPECTED  %+v \n ACTUAL  %+v", fullOrg, storedOrg))
 }
 
 func TestDeleteNothing(t *testing.T) {
 	assert := assert.New(t)
-	db := getDatabaseConnectionAndCheckClean(t, assert)
-	defer cleanDB(db, t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	cypherDriver := getCypherDriver(db)
 	res, err := cypherDriver.Delete(fullOrgUUID)
@@ -347,9 +296,9 @@ func TestDeleteNothing(t *testing.T) {
 func TestDeleteWithRelationships(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.Nil(cypherDriver.Write(fullOrg))
 	found, err := cypherDriver.Delete(fullOrgUUID)
@@ -364,9 +313,9 @@ func TestDeleteWithRelationships(t *testing.T) {
 func TestDeleteNoRelationships(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.Nil(cypherDriver.Write(minimalOrg))
 	found, err := cypherDriver.Delete(minimalOrgUUID)
@@ -387,16 +336,12 @@ func TestDeleteNoRelationships(t *testing.T) {
 }
 
 // Temporary solution, until the organisation lifecycle will be correctly managed.
-// This currently can happen as we currently don't support the lifecycle of an organisation
-// For example "Bobs Burgers Ltd." spends money on applying for an LEI code and then floats and effectively becomes a
-// new organisation "Bobs Burgers Plc." and rather than spend money again on getting an LEI just uses the one it applied
-// for as "Bobs Burgers Ltd." Until we deal with this lifecycle we should retain the relationship to both orgs.
 func TestToCheckYouCanCreateOrganisationWithDuplicateLeiIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 	assert.NoError(cypherDriver.Write(fullOrg))
 	err := cypherDriver.Write(dupeLeiIdentifierOrg)
 	assert.Nil(err)
@@ -410,13 +355,13 @@ func TestToCheckYouCanCreateOrganisationWithDuplicateLeiIdentifier(t *testing.T)
 	assert.True(found, "Didn't find organisation for uuid %s", dupeLeiIdentifierOrgUUID)
 }
 
-// The constraint is valid for tme, factset and upp identifiers
+// The uniqueness constraint is valid for tme, factset and upp identifiers
 func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 	assert.NoError(cypherDriver.Write(fullOrg))
 	err := cypherDriver.Write(dupeOtherIdentifierOrg)
 	assert.Error(err)
@@ -426,9 +371,9 @@ func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T)
 func TestCount(t *testing.T) {
 	assert := assert.New(t)
 
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.NoError(cypherDriver.Write(minimalOrg))
 	assert.NoError(cypherDriver.Write(fullOrg))
@@ -436,116 +381,4 @@ func TestCount(t *testing.T) {
 	count, err := cypherDriver.Count()
 	assert.NoError(err)
 	assert.Equal(2, count)
-}
-
-func checkDbClean(db *neoism.Database, t *testing.T) {
-	assert := assert.New(t)
-
-	result := []struct {
-		UUID string `json:"org.uuid"`
-	}{}
-
-	checkGraph := neoism.CypherQuery{
-		Statement: `
-			MATCH (org:Thing) WHERE org.uuid in {uuids} RETURN org.uuid
-		`,
-		Parameters: neoism.Props{
-			"uuids": []string{fullOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID},
-		},
-		Result: &result,
-	}
-	err := db.Cypher(&checkGraph)
-	assert.NoError(err)
-	assert.Empty(result)
-}
-
-func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions) *neoism.Database {
-	db := getDatabaseConnection(assert)
-	cleanDB(db, t, assert)
-	checkDbClean(db, t)
-	return db
-}
-
-func getDatabaseConnection(assert *assert.Assertions) *neoism.Database {
-	url := os.Getenv("NEO4J_TEST_URL")
-	if url == "" {
-		url = "http://localhost:7474/db/data"
-	}
-
-	db, err := neoism.Connect(url)
-	assert.NoError(err, "Failed to connect to Neo4j")
-	return db
-}
-
-func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
-	qs := []*neoism.CypherQuery{
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", fullOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", fullOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", canonicalOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", canonicalOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'})-[rel]-(o) DELETE c, rel ", contentUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'}) DELETE c ", contentUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", minimalOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", minimalOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", oddCharOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeLeiIdentifierOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", dupeOtherIdentifierOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", parentOrgUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (class:Thing {uuid: '%v'}) DETACH DELETE class", industryClassificationUUID),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'})<-[:IDENTIFIES*0..]-(i:Identifier) DETACH DELETE org, i", authorityNotSupportedOrgUUID),
-		},
-	}
-
-	err := db.CypherBatch(qs)
-	assert.NoError(err)
-}
-
-func getCypherDriver(db *neoism.Database) service {
-	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
-	cr.Initialise()
-	return cr
-}
-
-func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotationsRW annotations.Service) {
-	_, err := annotationsRW.Delete(minimalOrgUUID)
-	assert.Nil(err)
-	_, err = annotationsRW.Delete(canonicalOrgUUID)
-	assert.Nil(err)
-	qs := []*neoism.CypherQuery{
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "2384fa7a-d514-3d6a-a0ea-3a711f66d0d8"),
-		},
-		{
-			Statement: fmt.Sprintf("MATCH (org:Thing {uuid: '%v'}) DETACH DELETE org", "ccaa202e-3d27-3b75-b2f2-261cf5038a1f"),
-		},
-	}
-	err = db.CypherBatch(qs)
-	assert.NoError(err)
 }

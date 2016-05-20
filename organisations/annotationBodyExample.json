@@ -1,6 +1,6 @@
 [   {
           "thing": {
-              "id": "http://api.ft.com/things/2384fa7a-d514-3d6a-a0ea-3a711f66d0d8",
+              "id": "http://api.ft.com/things/b40d53d3-3b0d-4069-90d9-0ccf9d7e1d0c",
               "prefLabel": "Apple",
               "types": [
                   "http://www.ft.com/ontology/organisation/Organisation",
@@ -27,7 +27,7 @@
       },
       {
           "thing": {
-              "id": "http://api.ft.com/things/ccaa202e-3d27-3b75-b2f2-261cf5038a1f",
+              "id": "http://api.ft.com/things/b40d53d3-3b0d-4069-90d9-0ccf9d7e1d0c",
               "prefLabel": "Google",
               "types": [
                   "http://www.ft.com/ontology/organisation/Organisation",
@@ -35,6 +35,7 @@
                   "http://www.ft.com/ontology/concept/Concept"
               ]
           },
+          "predicate": "isClassifiedBy",
           "provenances": [
               {
                   "scores": [

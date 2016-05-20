@@ -19,12 +19,12 @@ func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManag
 
 func (cd service) Initialise() error {
 	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
-		"Thing":        "uuid",
-		"Concept":      "uuid",
-		"Organisation": "uuid",
-		"FactsetIdentifier":   "value",
-		"TMEIdentifier" : "value",
-		"UPPIdentifier": "value"})
+		"Thing":             "uuid",
+		"Concept":           "uuid",
+		"Organisation":      "uuid",
+		"FactsetIdentifier": "value",
+		"TMEIdentifier":     "value",
+		"UPPIdentifier":     "value"})
 }
 
 func setProps(props *map[string]interface{}, item *string, propName string) {
@@ -79,9 +79,6 @@ func (cd service) Write(thing interface{}) error {
 		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
 		queries = append(queries, addIdentifierQuery)
 	}
-	//add upp identifier for the canonical uuid
-	addIdentifierQuery := addIdentifierQuery(identifier{Authority: uppAuthority, IdentifierValue: o.UUID}, o.UUID, identifierLabels[uppAuthority])
-	queries = append(queries, addIdentifierQuery)
 
 	//add type
 	err, stringType := o.Type.String()
@@ -117,7 +114,7 @@ func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID stri
 
 	for _, identifier := range possibleOldNodes {
 		// only nodes with uppAuthority can be older organisation nodes
-		if identifier.Authority == uppAuthority {
+		if identifier.Authority == uppAuthority && identifier.IdentifierValue != canonicalUUID {
 			nodeExists, err := cd.checkNodeExistence(identifier.IdentifierValue)
 			if err != nil {
 				return nil, err

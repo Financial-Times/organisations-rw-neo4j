@@ -1,14 +1,58 @@
 package organisations
 
 import (
+	"fmt"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 )
 
-const testRelationshipLeftToRight = "TEST_RELATIONSHIP_1"
-const testRelationshipRightToLeft = "TEST_RELATIONSHIP_2"
+const (
+	testRelationshipLeftToRight     = "TEST_RELATIONSHIP_1"
+	testRelationshipRightToLeft     = "TEST_RELATIONSHIP_2"
+	relationShipTransferContentUUID = "d3dbe29e-5f6f-456f-a245-9c4d70846e11"
+	transferOrg1UUID                = "10c547d2-6383-41e1-9430-2f543321587f"
+	transferOrg2UUID                = "3977bc1c-1026-45f0-b7db-d91ff25770fb"
+	fromUUID                        = "3d91a94c-6ce6-4ec9-a16b-8b89be574ecc"
+	toUUID                          = "ecd7319d-92f1-3c0a-9912-0b91186bf555"
+)
+
+var transferOrg1 = organisation{
+	UUID:        transferOrg1UUID,
+	Type:        Organisation,
+	Identifiers: []identifier{fsTransferOrg1Identifier, uppTransferOrg1Identifier},
+	ProperName:  "Org Proper Name 1",
+}
+
+var transferOrg2 = organisation{
+	UUID:        transferOrg2UUID,
+	Type:        Organisation,
+	Identifiers: []identifier{fsTransferOrg2Identifier, uppTransferOrg2Identifier},
+	ProperName:  "Org Proper Name 2",
+}
+
+var fsTransferOrg1Identifier = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "org identifier 1",
+}
+
+var uppTransferOrg1Identifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: transferOrg1UUID,
+}
+
+var fsTransferOrg2Identifier = identifier{
+	Authority:       fsAuthority,
+	IdentifierValue: "org identifier 2",
+}
+
+var uppTransferOrg2Identifier = identifier{
+	Authority:       uppAuthority,
+	IdentifierValue: transferOrg2UUID,
+}
+
+var transferUUIDsToClean = []string{relationShipTransferContentUUID, transferOrg1UUID, transferOrg2UUID}
 
 func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 	var tests = []struct {
@@ -18,8 +62,8 @@ func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 		constructedQuery *neoism.CypherQuery
 	}{
 		{
-			"3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
-			"ecd7319d-92f1-3c0a-9912-0b91186bf555",
+			fromUUID,
+			toUUID,
 			testRelationshipLeftToRight,
 			&neoism.CypherQuery{
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
@@ -29,8 +73,8 @@ func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 				SET newRel = oldRel
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
-					"fromUUID": "3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
-					"toUUID":   "ecd7319d-92f1-3c0a-9912-0b91186bf555",
+					"fromUUID": fromUUID,
+					"toUUID":   toUUID,
 				},
 			},
 		},
@@ -59,8 +103,8 @@ func TestConstructTransferRelationshipsToNodeQuery(t *testing.T) {
 		constructedQuery *neoism.CypherQuery
 	}{
 		{
-			"3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
-			"ecd7319d-92f1-3c0a-9912-0b91186bf555",
+			fromUUID,
+			toUUID,
 			testRelationshipRightToLeft,
 			&neoism.CypherQuery{
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
@@ -70,8 +114,8 @@ func TestConstructTransferRelationshipsToNodeQuery(t *testing.T) {
 				SET newRel = oldRel
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
-					"fromUUID": "3d91a94c-6ce6-4ec9-a16b-8b89be574ecc",
-					"toUUID":   "ecd7319d-92f1-3c0a-9912-0b91186bf555",
+					"fromUUID": fromUUID,
+					"toUUID":   toUUID,
 				},
 			},
 		},
@@ -94,9 +138,9 @@ func TestConstructTransferRelationshipsToNodeQuery(t *testing.T) {
 
 func TestGetNodeRelationshipNames(t *testing.T) {
 	assert := assert.New(t)
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, transferUUIDsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanRelationshipDB(db, t, assert, transferUUIDsToClean)
 
 	addMentionsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (c:Thing{uuid:{uuid}})
@@ -104,15 +148,15 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 			    CREATE (co)-[:` + testRelationshipLeftToRight + `{someProperty:"someValue"}]->(c)
 			    CREATE (co)<-[:` + testRelationshipRightToLeft + `]-(c)`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  minimalOrgUUID,
+			"cuuid": relationShipTransferContentUUID,
+			"uuid":  transferOrg1UUID,
 		},
 	}
 
-	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(transferOrg1))
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
-	relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, err := getNodeRelationshipNames(cypherDriver.cypherRunner, minimalOrgUUID)
+	relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg1UUID)
 
 	assert.NoError(err)
 	assert.True(len(relationshipsFromNodeWithUUID) >= 1, "Expected -> relationship length differs from actual length")
@@ -124,9 +168,9 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 
 func TestTransferRelationships(t *testing.T) {
 	assert := assert.New(t)
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnectionAndCheckClean(t, assert, transferUUIDsToClean)
 	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert)
+	defer cleanRelationshipDB(db, t, assert, transferUUIDsToClean)
 
 	addMentionsQuery := &neoism.CypherQuery{
 		Statement: `MATCH (c:Thing{uuid:{uuid}})
@@ -134,29 +178,29 @@ func TestTransferRelationships(t *testing.T) {
 			    CREATE (co)-[:` + testRelationshipLeftToRight + `{someProperty:"someValue"}]->(c)
 			    CREATE (co)<-[:` + testRelationshipRightToLeft + `]-(c)`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  minimalOrgUUID,
+			"cuuid": relationShipTransferContentUUID,
+			"uuid":  transferOrg1UUID,
 		},
 	}
-	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(transferOrg1))
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
 	//write new node and test that it doesn't yet have the relationships
-	assert.NoError(cypherDriver.Write(fullOrg))
-	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, fullOrgUUID)
+	assert.NoError(cypherDriver.Write(transferOrg2))
+	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg2UUID)
 	assert.NoError(err)
 	assert.False(contains(relationshipsFromNewNode, testRelationshipRightToLeft))
 	assert.False(contains(relationshipsToNewNode, testRelationshipRightToLeft))
 
 	//transfer relationships from the one above to the on other uuid
-	transferQuery, err := TransferRelationships(cypherDriver.cypherRunner, fullOrgUUID, minimalOrgUUID)
+	transferQuery, err := TransferRelationships(cypherDriver.cypherRunner, transferOrg2UUID, transferOrg1UUID)
 	assert.NoError(err)
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch(transferQuery))
 
 	//verify that the relationships has been transferred
-	relationshipsFromOldNode, relationshipsToOldNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, minimalOrgUUID)
+	relationshipsFromOldNode, relationshipsToOldNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg1UUID)
 	assert.NoError(err)
-	relationshipsFromNewNode, relationshipsToNewNode, err = getNodeRelationshipNames(cypherDriver.cypherRunner, fullOrgUUID)
+	relationshipsFromNewNode, relationshipsToNewNode, err = getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg2UUID)
 	assert.NoError(err)
 
 	//no relationships for the old node
@@ -167,7 +211,7 @@ func TestTransferRelationships(t *testing.T) {
 	assert.True(contains(relationshipsFromNewNode, testRelationshipRightToLeft))
 	assert.True(contains(relationshipsToNewNode, testRelationshipLeftToRight))
 
-	//verify that properties has been trasnferred
+	//verify that properties has been transferred
 	type property []struct {
 		Value string `json:"r.someProperty"`
 	}
@@ -177,8 +221,8 @@ func TestTransferRelationships(t *testing.T) {
 		Statement: `match (co:Content{uuid:{cuuid}})-[r:` + testRelationshipLeftToRight + `]->(c:Thing{uuid:{uuid}})
  				return r.someProperty`,
 		Parameters: map[string]interface{}{
-			"cuuid": contentUUID,
-			"uuid":  fullOrgUUID,
+			"cuuid": relationShipTransferContentUUID,
+			"uuid":  transferOrg2UUID,
 		},
 		Result: &transferredProperty,
 	}
@@ -187,11 +231,18 @@ func TestTransferRelationships(t *testing.T) {
 	assert.Equal("someValue", transferredProperty[0].Value)
 }
 
-func contains(rels relationships, rel string) bool {
-	for _, foundRel := range rels {
-		if foundRel.RelationshipType == rel {
-			return true
-		}
+func cleanRelationshipDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
+	cleanDB(db, t, assert, uuidsToClean)
+
+	qs := []*neoism.CypherQuery{
+		{
+			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'})-[rel]-(o) DELETE c, rel ", relationShipTransferContentUUID),
+		},
+		{
+			Statement: fmt.Sprintf("MATCH (c:Content {uuid: '%v'}) DELETE c ", relationShipTransferContentUUID),
+		},
 	}
-	return false
+
+	err := db.CypherBatch(qs)
+	assert.NoError(err)
 }
