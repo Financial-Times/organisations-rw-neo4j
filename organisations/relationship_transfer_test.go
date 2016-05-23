@@ -69,8 +69,14 @@ func TestConstructTransferRelationshipsFromNodeQuery(t *testing.T) {
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
 				MATCH (newNode:Thing {uuid:{toUUID}})
 				MATCH (oldNode)-[oldRel:` + testRelationshipLeftToRight + `]->(p)
-				MERGE (newNode)-[newRel:` + testRelationshipLeftToRight + `]->(p)
-				SET newRel = oldRel
+				FOREACH (ignoreMe IN CASE WHEN (HAS (oldRel.platformVersion)) THEN [1] ELSE [] END |
+					MERGE (newNode)-[newRel:` + testRelationshipLeftToRight + `{platformVersion:oldRel.platformVersion}]->(p)
+					SET newRel = oldRel
+				)
+				FOREACH (ignoreMe IN CASE WHEN NOT (HAS (oldRel.platformVersion)) THEN [1] ELSE [] END |
+					MERGE (newNode)-[newRel:` + testRelationshipLeftToRight + `]->(p)
+					SET newRel = oldRel
+				)
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
 					"fromUUID": fromUUID,
@@ -110,8 +116,14 @@ func TestConstructTransferRelationshipsToNodeQuery(t *testing.T) {
 				Statement: `MATCH (oldNode:Thing {uuid:{fromUUID}})
 				MATCH (newNode:Thing {uuid:{toUUID}})
 				MATCH (oldNode)<-[oldRel:` + testRelationshipRightToLeft + `]-(p)
-				MERGE (newNode)<-[newRel:` + testRelationshipRightToLeft + `]-(p)
-				SET newRel = oldRel
+				FOREACH (ignoreMe IN CASE WHEN (HAS (oldRel.platformVersion)) THEN [1] ELSE [] END |
+					MERGE (newNode)<-[newRel:` + testRelationshipRightToLeft + `{platformVersion:oldRel.platformVersion}]-(p)
+					SET newRel = oldRel
+				)
+				FOREACH (ignoreMe IN CASE WHEN NOT (HAS (oldRel.platformVersion)) THEN [1] ELSE [] END |
+					MERGE (newNode)<-[newRel:` + testRelationshipRightToLeft + `]-(p)
+					SET newRel = oldRel
+				)
 				DELETE oldRel`,
 				Parameters: map[string]interface{}{
 					"fromUUID": fromUUID,
