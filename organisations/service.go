@@ -124,7 +124,7 @@ func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID stri
 				queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
 
 				// re-point the remaining relationships from previous node to the canonical/actual one
-				transferQueries, err := TransferRelationships(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+				transferQueries, err := CreateTransferRelationshipsQueries(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
 				if err != nil {
 					return nil, err
 				}

@@ -205,7 +205,7 @@ func TestTransferRelationships(t *testing.T) {
 	assert.False(contains(relationshipsToNewNode, testRelationshipRightToLeft))
 
 	//transfer relationships from the one above to the on other uuid
-	transferQuery, err := TransferRelationships(cypherDriver.cypherRunner, transferOrg2UUID, transferOrg1UUID)
+	transferQuery, err := CreateTransferRelationshipsQueries(cypherDriver.cypherRunner, transferOrg2UUID, transferOrg1UUID)
 	assert.NoError(err)
 	assert.NoError(cypherDriver.cypherRunner.CypherBatch(transferQuery))
 

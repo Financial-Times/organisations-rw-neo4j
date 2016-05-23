@@ -11,7 +11,7 @@ type relationships []struct {
 }
 
 // TransferRelationships is responsible for moving relationships from node with sourceUUID to node with destinationUUID
-func TransferRelationships(cypherRunner neoutils.CypherRunner, destinationUUID string, sourceUUID string) ([]*neoism.CypherQuery, error) {
+func CreateTransferRelationshipsQueries(cypherRunner neoutils.CypherRunner, destinationUUID string, sourceUUID string) ([]*neoism.CypherQuery, error) {
 
 	relationshipsFromSourceNode, relationshipsToSourceNode, err := getNodeRelationshipNames(cypherRunner, sourceUUID)
 	if err != nil {
