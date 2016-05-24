@@ -1,0 +1,55 @@
+[   {
+          "thing": {
+              "id": "http://api.ft.com/things/0d99ab07-3b0a-4313-939e-caa02db23aa1",
+              "prefLabel": "Apple",
+              "types": [
+                  "http://www.ft.com/ontology/organisation/Organisation",
+                  "http://www.ft.com/ontology/core/Thing",
+                  "http://www.ft.com/ontology/concept/Concept"
+              ]
+          },
+          "provenances": [
+              {
+                  "scores": [
+                      {
+                          "scoringSystem": "http://api.ft.com/scoringsystem/FT-RELEVANCE-SYSTEM",
+                          "value": 1
+                      },
+                      {
+                          "scoringSystem": "http://api.ft.com/scoringsystem/FT-CONFIDENCE-SYSTEM",
+                          "value": 0.9932743203464962
+                      }
+                  ],
+                  "atTime": "2016-01-20T19:43:47.314Z",
+                  "agentRole": "http://api.ft.com/things/0edd3c31-1fd0-4ef6-9230-8d545be3880a"
+              }
+          ]
+      },
+    {
+    "thing": {
+        "id": "http://api.ft.com/things/bbb7173b-2e90-4cc5-b439-252427e46cd0",
+        "prefLabel": "Apple",
+        "types": [
+            "http://www.ft.com/ontology/organisation/Organisation",
+            "http://www.ft.com/ontology/core/Thing",
+            "http://www.ft.com/ontology/concept/Concept"
+        ]
+    },
+    "provenances": [
+        {
+            "scores": [
+                {
+                    "scoringSystem": "http://api.ft.com/scoringsystem/FT-RELEVANCE-SYSTEM",
+                    "value": 1
+                },
+                {
+                    "scoringSystem": "http://api.ft.com/scoringsystem/FT-CONFIDENCE-SYSTEM",
+                    "value": 0.9932743203464962
+                }
+            ],
+            "atTime": "2016-01-20T19:43:47.314Z",
+            "agentRole": "http://api.ft.com/things/0edd3c31-1fd0-4ef6-9230-8d545be3880a"
+        }
+    ]
+}
+]

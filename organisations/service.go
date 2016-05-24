@@ -12,16 +12,19 @@ type service struct {
 	indexManager neoutils.IndexManager
 }
 
+//NewCypherOrganisationService returns a new service responsible for writing organisations in Neo4j
 func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) service {
 	return service{cypherRunner, indexManager}
 }
 
 func (cd service) Initialise() error {
 	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
-		"Thing":        "uuid",
-		"Concept":      "uuid",
-		"Organisation": "uuid",
-		"Identifier":   "value"})
+		"Thing":             "uuid",
+		"Concept":           "uuid",
+		"Organisation":      "uuid",
+		"FactsetIdentifier": "value",
+		"TMEIdentifier":     "value",
+		"UPPIdentifier":     "value"})
 }
 
 func setProps(props *map[string]interface{}, item *string, propName string) {
@@ -44,59 +47,40 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 
 //Write - Writes an Organisation node
 func (cd service) Write(thing interface{}) error {
+
 	o := thing.(organisation)
+	props := constructOrganisationProperties(o)
 
-	props := map[string]interface{}{
-		"uuid":       o.UUID,
-		"properName": o.ProperName,
-		"prefLabel":  o.ProperName,
-	}
-
-	setProps(&props, &o.LegalName, "legalName")
-	setProps(&props, &o.ShortName, "shortName")
-	setProps(&props, &o.HiddenLabel, "hiddenLabel")
-	setListProps(&props, &o.FormerNames, "formerNames")
-	setListProps(&props, &o.LocalNames, "localNames")
-	setListProps(&props, &o.TradeNames, "tradeNames")
-	setListProps(&props, &o.Aliases, "aliases")
-
-	deleteEntityRelationshipsQuery := &neoism.CypherQuery{
-		Statement: `MATCH (o:Thing {uuid:{uuid}})
-		OPTIONAL MATCH (o)-[hc:HAS_CLASSIFICATION]->(ic)
-		OPTIONAL MATCH (o)-[soo:SUB_ORGANISATION_OF]->(p)
-		OPTIONAL MATCH (o)<-[iden:IDENTIFIES]-(i)
-		DELETE hc, soo, iden, i`,
-		Parameters: map[string]interface{}{
-			"uuid": o.UUID,
-		},
-	}
-
-	resetOrgQuery := &neoism.CypherQuery{
-		Statement: `MERGE (o:Thing {uuid: {uuid}})
-					REMOVE o:PublicCompany:Company:Organisation:Concept
-					SET o={props}`,
-		Parameters: map[string]interface{}{
-			"uuid":  o.UUID,
-			"props": props,
-		},
-	}
+	deleteEntityRelationshipsQuery := constructDeleteEntityRelationshipQuery(o.UUID)
+	resetOrgQuery := constructResetOrganisationQuery(o.UUID, props)
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
+
+	mergingQueriesForOldNodes, err := cd.constructMergingOldOrganisationNodesQueries(o.UUID, o.Identifiers)
+	if err != nil {
+		return err
+	}
+
+	if len(mergingQueriesForOldNodes) != 0 {
+		queries = append(queries, mergingQueriesForOldNodes...)
+	}
 
 	identifierLabels := map[string]string{
 		fsAuthority:  factsetIdentifierLabel,
 		leiAuthority: leiIdentifierLabel,
 		tmeAuthority: tmeIdentifierLabel,
+		uppAuthority: uppIdentifierLabel,
 	}
+
 	for _, identifier := range o.Identifiers {
-
 		if identifierLabels[identifier.Authority] == "" {
-			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority)}
+			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
 		}
-		addIdentfierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
-		queries = append(queries, addIdentfierQuery)
+		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
+		queries = append(queries, addIdentifierQuery)
 	}
 
+	//add type
 	err, stringType := o.Type.String()
 	if err == nil {
 		setTypeStatement := fmt.Sprintf(`MERGE (o:Thing {uuid: {uuid}})  set o : %s `, stringType)
@@ -113,47 +97,84 @@ func (cd service) Write(thing interface{}) error {
 	}
 
 	if o.IndustryClassification != "" {
-
-		industryClassQuery := &neoism.CypherQuery{
-			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
-			Parameters: map[string]interface{}{
-				"uuid":    o.UUID,
-				"indUuid": o.IndustryClassification,
-			},
-		}
+		industryClassQuery := constructCreateIndustryClassificationQuery(o.UUID, o.IndustryClassification)
 		queries = append(queries, industryClassQuery)
 	}
 
 	if o.ParentOrganisation != "" {
-		parentQuery := &neoism.CypherQuery{
-			Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
-			Parameters: map[string]interface{}{
-				"uuid":   o.UUID,
-				"paUuid": o.ParentOrganisation,
-			},
-		}
+		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
-
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
+func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error) {
 
-	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					CREATE (i:Identifier {value:{value} , authority:{authority}})
-					CREATE (o)<-[:IDENTIFIES]-(i)
-					set i : %s `, identifierLabel)
+	queries := []*neoism.CypherQuery{}
 
-	query := &neoism.CypherQuery{
-		Statement: statementTemplate,
-		Parameters: map[string]interface{}{
-			"uuid":      uuid,
-			"value":     identifier.IdentifierValue,
-			"authority": identifier.Authority,
-		},
+	for _, identifier := range possibleOldNodes {
+		// only nodes with uppAuthority can be older organisation nodes
+		if identifier.Authority == uppAuthority && identifier.IdentifierValue != canonicalUUID {
+			nodeExists, err := cd.checkNodeExistence(identifier.IdentifierValue)
+			if err != nil {
+				return nil, err
+			}
+			if nodeExists {
+				deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
+				queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
+
+				// re-point the remaining relationships from previous node to the canonical/actual one
+				transferQueries, err := CreateTransferRelationshipsQueries(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+				if err != nil {
+					return nil, err
+				}
+				if len(transferQueries) != 0 {
+					queries = append(queries, transferQueries...)
+				}
+
+				// delete oldOrg
+				deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier.IdentifierValue)
+				queries = append(queries, deleteOldOrganisationQuery)
+			}
+		}
 	}
-	return query
+
+	return queries, nil
+}
+
+func (cd service) checkNodeExistence(uuid string) (bool, error) {
+	type result []struct {
+		Count int `json:"nr"`
+	}
+	res := result{}
+
+	checkNodeExistenceQuery := &neoism.CypherQuery{
+		Statement: `match (a:Thing{uuid:{uuid}})
+			           return count(a) as nr`,
+		Parameters: map[string]interface{}{
+			"uuid": uuid,
+		},
+		Result: &res,
+	}
+
+	readQueries := []*neoism.CypherQuery{checkNodeExistenceQuery}
+	err := cd.cypherRunner.CypherBatch(readQueries)
+
+	if err != nil {
+		return false, err
+	}
+
+	if len(res) != 1 {
+		return false, fmt.Errorf("DB inconsistence: one count result should be returned for node with UUID %s", uuid)
+	}
+
+	if res[0].Count == 0 {
+		return false, nil
+	} else if res[0].Count == 1 {
+		return true, nil
+	} else {
+		return false, fmt.Errorf("DB inconsistence: %d node (instead of max 1) exists with UUID %s", res[0].Count, uuid)
+	}
 }
 
 //Read - Internal Read of an Organisation
@@ -235,7 +256,7 @@ func addType(orgType *OrgType, types *[]string) {
 }
 
 //Delete - Deletes an Organisation
-func (pcd service) Delete(uuid string) (bool, error) {
+func (cd service) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})
@@ -263,7 +284,7 @@ func (pcd service) Delete(uuid string) (bool, error) {
 		},
 	}
 
-	err := pcd.cypherRunner.CypherBatch(qs)
+	err := cd.cypherRunner.CypherBatch(qs)
 
 	s1, err := clearNode.Stats()
 
@@ -278,19 +299,19 @@ func (pcd service) Delete(uuid string) (bool, error) {
 	return false, err
 }
 
-func (s service) Check() error {
-	return neoutils.Check(s.cypherRunner)
+func (cd service) Check() error {
+	return neoutils.Check(cd.cypherRunner)
 }
 
 type countResult []struct {
 	Count int `json:"c"`
 }
 
-func (s service) Count() (int, error) {
+func (cd service) Count() (int, error) {
 
 	results := countResult{}
 
-	err := s.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
+	err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
 		Statement: `MATCH (n:Organisation) return count(n) as c`,
 		Result:    &results,
 	}})
@@ -302,7 +323,7 @@ func (s service) Count() (int, error) {
 	return results[0].Count, nil
 }
 
-func (s service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
+func (cd service) DecodeJSON(dec *json.Decoder) (interface{}, string, error) {
 	org := organisation{}
 	err := dec.Decode(&org)
 	return org, org.UUID, err
@@ -324,7 +345,9 @@ const (
 	fsAuthority            = "http://api.ft.com/system/FACTSET-EDM"
 	leiAuthority           = "http://api.ft.com/system/LEI"
 	tmeAuthority           = "http://api.ft.com/system/FT-TME"
+	uppAuthority           = "http://api.ft.com/system/FT-UPP"
 	factsetIdentifierLabel = "FactsetIdentifier"
 	leiIdentifierLabel     = "LegalEntityIdentifier"
 	tmeIdentifierLabel     = "TMEIdentifier"
+	uppIdentifierLabel     = "UPPIdentifier"
 )
