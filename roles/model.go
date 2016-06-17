@@ -8,13 +8,19 @@ package roles
     public final String identifier;
 }*/
 type role struct {
-	UUID        string       `json:"uuid"`
-	IsBoardRole bool         `json:"isBoardRole"`
-	Identifiers []identifier `json:"identifiers,omitempty"`
-	PrefLabel   string       `json:"prefLabel,omitempty"`
+	UUID                   string                 `json:"uuid"`
+	IsBoardRole            bool                   `json:"isBoardRole"`
+	PrefLabel              string                 `json:"prefLabel,omitempty"`
+	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers"`
+	Types                  []string               `json:"types,omitempty"`
 }
 
-type identifier struct {
-	Authority       string `json:"authority"`
-	IdentifierValue string `json:"identifierValue"`
+type alternativeIdentifiers struct {
+	FactsetIdentifier string   `json:"factsetIdentifier,omitempty"`
+	UUIDS             []string `json:"uuids"`
 }
+
+const (
+	factsetIdentifierLabel = "FactsetIdentifier"
+	uppIdentifierLabel     = "UPPIdentifier"
+)
