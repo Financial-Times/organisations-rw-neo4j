@@ -100,18 +100,24 @@ func (pcd CypherDriver) Write(thing interface{}) error {
 	deletePreviousIdentifiersQuery := &neoism.CypherQuery{
 		Statement: `MATCH (t:Thing {uuid:{uuid}})
 		OPTIONAL MATCH (t)<-[iden:IDENTIFIES]-(i)
-		DELETE iden, i`,
+		DELETE iden, i
+		REMOVE t:BoardRole`,
 		Parameters: map[string]interface{}{
 			"uuid": roleToWrite.UUID,
 		},
 	}
 
 	//create-update node for ROLE
+	statement := `MERGE (n:Thing {uuid: {uuid}})
+				set n={allprops}
+				set n :Role`
+
+	if roleToWrite.IsBoardRole {
+		statement += ` set n :BoardRole`
+	}
+
 	createRoleQuery := &neoism.CypherQuery{
-		Statement: `MERGE (n:Thing {uuid: {uuid}})
-					set n={allprops}
-					set n :Role
-		`,
+		Statement: statement,
 		Parameters: map[string]interface{}{
 			"uuid": roleToWrite.UUID,
 			"allprops": map[string]interface{}{
@@ -155,6 +161,7 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 			MATCH (t:Thing {uuid: {uuid}})
 			OPTIONAL MATCH (t)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE t:Role
+			REMOVE t:BoardRole
 			DELETE iden, i
 			SET t = {uuid:{uuid}}
 		`,
