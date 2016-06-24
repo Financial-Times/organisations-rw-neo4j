@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
+	"sort"
 )
 
 type service struct {
@@ -56,7 +57,7 @@ func (cd service) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
-	mergingQueriesForOldNodes, err := cd.constructMergingOldOrganisationNodesQueries(o.UUID, o.Identifiers)
+	mergingQueriesForOldNodes, err := cd.constructMergingOldOrganisationNodesQueries(o.UUID, o.AlternativeIdentifiers.UUIDS)
 	if err != nil {
 		return err
 	}
@@ -65,19 +66,23 @@ func (cd service) Write(thing interface{}) error {
 		queries = append(queries, mergingQueriesForOldNodes...)
 	}
 
-	identifierLabels := map[string]string{
-		fsAuthority:  factsetIdentifierLabel,
-		leiAuthority: leiIdentifierLabel,
-		tmeAuthority: tmeIdentifierLabel,
-		uppAuthority: uppIdentifierLabel,
+	//ADD all the IDENTIFIER nodes and IDENTIFIES relationships
+	for _, alternativeUUID := range o.AlternativeIdentifiers.TME {
+		alternativeIdentifierQuery := createNewIdentifierQuery(o.UUID, tmeIdentifierLabel, alternativeUUID)
+		queries = append(queries, alternativeIdentifierQuery)
 	}
 
-	for _, identifier := range o.Identifiers {
-		if identifierLabels[identifier.Authority] == "" {
-			return requestError{fmt.Sprintf("This identifier type- %v, is not supported. Only '%v', '%v', '%v' and '%v' are currently supported", identifier.Authority, fsAuthority, leiAuthority, tmeAuthority, uppAuthority)}
-		}
-		addIdentifierQuery := addIdentifierQuery(identifier, o.UUID, identifierLabels[identifier.Authority])
-		queries = append(queries, addIdentifierQuery)
+	for _, alternativeUUID := range o.AlternativeIdentifiers.UUIDS {
+		alternativeIdentifierQuery := createNewIdentifierQuery(o.UUID, uppIdentifierLabel, alternativeUUID)
+		queries = append(queries, alternativeIdentifierQuery)
+	}
+
+	if o.AlternativeIdentifiers.FactsetIdentifier != "" {
+		queries = append(queries, createNewIdentifierQuery(o.UUID, factsetIdentifierLabel, o.AlternativeIdentifiers.FactsetIdentifier))
+	}
+
+	if o.AlternativeIdentifiers.LeiCode != "" {
+		queries = append(queries, createNewIdentifierQuery(o.UUID, leiIdentifierLabel, o.AlternativeIdentifiers.LeiCode))
 	}
 
 	//add type
@@ -108,23 +113,23 @@ func (cd service) Write(thing interface{}) error {
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
-func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []identifier) ([]*neoism.CypherQuery, error) {
+func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []string) ([]*neoism.CypherQuery, error) {
 
 	queries := []*neoism.CypherQuery{}
 
 	for _, identifier := range possibleOldNodes {
 		// only nodes with uppAuthority can be older organisation nodes
-		if identifier.Authority == uppAuthority && identifier.IdentifierValue != canonicalUUID {
-			nodeExists, err := cd.checkNodeExistence(identifier.IdentifierValue)
+		if identifier != canonicalUUID {
+			nodeExists, err := cd.checkNodeExistence(identifier)
 			if err != nil {
 				return nil, err
 			}
 			if nodeExists {
-				deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier.IdentifierValue)
+				deleteEntityRelationshipsForDeprecatedOrgNodeQuery := constructDeleteEntityRelationshipQuery(identifier)
 				queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
 
 				// re-point the remaining relationships from previous node to the canonical/actual one
-				transferQueries, err := CreateTransferRelationshipsQueries(cd.cypherRunner, canonicalUUID, identifier.IdentifierValue)
+				transferQueries, err := CreateTransferRelationshipsQueries(cd.cypherRunner, canonicalUUID, identifier)
 				if err != nil {
 					return nil, err
 				}
@@ -133,7 +138,7 @@ func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID stri
 				}
 
 				// delete oldOrg
-				deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier.IdentifierValue)
+				deleteOldOrganisationQuery := constructDeleteEmptyNodeQuery(identifier)
 				queries = append(queries, deleteOldOrganisationQuery)
 			}
 		}
@@ -181,30 +186,47 @@ func (cd service) checkNodeExistence(uuid string) (bool, error) {
 func (cd service) Read(uuid string) (interface{}, bool, error) {
 
 	results := []struct {
-		UUID          string       `json:"o.uuid"`
-		Type          []string     `json:"type"`
-		ProperName    string       `json:"o.properName"`
-		LegalName     string       `json:"o.legalName"`
-		ShortName     string       `json:"o.shortName"`
-		HiddenLabel   string       `json:"o.hiddenLabel"`
-		Identifiers   []identifier `json:"identifiers"`
-		TradeNames    []string     `json:"o.tradeNames"`
-		LocalNames    []string     `json:"o.localNames"`
-		FormerNames   []string     `json:"o.formerNames"`
-		Aliases       []string     `json:"o.aliases"`
-		ParentOrgUUID string       `json:"par.uuid"`
-		IndustryUUID  string       `json:"ind.uuid"`
+		UUID                   string                 `json:"uuid"`
+		Type                   []string               `json:"type"`
+		ProperName             string                 `json:"properName"`
+		PrefLabel              string                 `json:"prefLabel"`
+		LegalName              string                 `json:"legalName"`
+		ShortName              string                 `json:"shortName"`
+		HiddenLabel            string                 `json:"hiddenLabel"`
+		AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers"`
+		TradeNames             []string               `json:"tradeNames"`
+		LocalNames             []string               `json:"localNames"`
+		FormerNames            []string               `json:"formerNames"`
+		Aliases                []string               `json:"aliases"`
+		IndustryClassification string                 `json:"industryClassification"`
+		ParentOrganisation     string                 `json:"parentOrganisation"`
 	}{}
 
 	readQuery := &neoism.CypherQuery{
-
 		Statement: `MATCH (o:Organisation:Concept{uuid:{uuid}})
-            OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing) 
-            OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
-            OPTIONAL MATCH (o)<-[:IDENTIFIES]-(id:Identifier)
-			with o, ind, par,  collect({authority:id.authority, identifierValue:id.value})as identifiers
-            RETURN o.uuid , o.properName , labels(o) as Type, o.legalName, o.shortName, o.hiddenLabel,
-            o.formerNames, o.tradeNames, o.localNames, o.aliases, ind.uuid, par.uuid, identifiers`,
+            			OPTIONAL MATCH (o)-[:SUB_ORGANISATION_OF]->(par:Thing)
+            			OPTIONAL MATCH (o)-[:HAS_CLASSIFICATION]->(ind:Thing)
+           			OPTIONAL MATCH (upp:UPPIdentifier)-[:IDENTIFIES]->(o)
+	    			OPTIONAL MATCH (factset:FactsetIdentifier)-[:IDENTIFIES]->(o)
+	   			OPTIONAL MATCH (tme:TMEIdentifier)-[:IDENTIFIES]->(o)
+	    			OPTIONAL MATCH (lei:LegalEntityIdentifier)-[:IDENTIFIES]->(o)
+            		 	RETURN o.uuid as uuid,
+					o.properName as properName,
+					labels(o) as Type,
+					o.prefLabel as prefLabel,
+					o.legalName as legalName,
+					o.shortName as shortName,
+					o.hiddenLabel as hiddenLabel,
+					o.formerNames as formerNames,
+					o.tradeNames as tradeNames,
+					o.localNames as localNames,
+					o.aliases as aliases,
+					ind.uuid as industryClassification,
+					par.uuid as parentOrganisation,
+					{uuids:collect(distinct upp.value),
+					 TME:collect(distinct tme.value),
+					 factsetIdentifier:factset.value,
+					 leiCode:lei.value} as alternativeIdentifiers`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
 		},
@@ -220,24 +242,22 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 	o := organisation{
 		UUID:                   result.UUID,
 		ProperName:             result.ProperName,
+		PrefLabel:              result.PrefLabel,
 		LegalName:              result.LegalName,
 		ShortName:              result.ShortName,
 		HiddenLabel:            result.HiddenLabel,
 		TradeNames:             result.TradeNames,
 		LocalNames:             result.LocalNames,
 		FormerNames:            result.FormerNames,
-		Identifiers:            result.Identifiers,
+		AlternativeIdentifiers: result.AlternativeIdentifiers,
 		Aliases:                result.Aliases,
-		ParentOrganisation:     result.ParentOrgUUID,
-		IndustryClassification: result.IndustryUUID,
+		ParentOrganisation:     result.ParentOrganisation,
+		IndustryClassification: result.IndustryClassification,
 	}
 
 	addType(&o.Type, &result.Type)
-	sortIdentifiers(o.Identifiers)
-
-	if len(result.Identifiers) == 1 && (result.Identifiers[0].IdentifierValue == "") {
-		o.Identifiers = make([]identifier, 0, 0)
-	}
+	sort.Strings(o.AlternativeIdentifiers.TME)
+	sort.Strings(o.AlternativeIdentifiers.UUIDS)
 
 	return o, true, nil
 }
@@ -263,7 +283,7 @@ func (cd service) Delete(uuid string) (bool, error) {
 			OPTIONAL MATCH (org)<-[iden:IDENTIFIES]-(i:Identifier)
 			REMOVE org:Concept:Organisation:Company:PublicCompany
 			DELETE iden, i
-			SET org={ uuid: {uuid}}
+			SET org={uuid: {uuid}}
 		`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
@@ -340,14 +360,3 @@ func (re requestError) Error() string {
 func (re requestError) InvalidRequestDetails() string {
 	return re.details
 }
-
-const (
-	fsAuthority            = "http://api.ft.com/system/FACTSET-EDM"
-	leiAuthority           = "http://api.ft.com/system/LEI"
-	tmeAuthority           = "http://api.ft.com/system/FT-TME"
-	uppAuthority           = "http://api.ft.com/system/FT-UPP"
-	factsetIdentifierLabel = "FactsetIdentifier"
-	leiIdentifierLabel     = "LegalEntityIdentifier"
-	tmeIdentifierLabel     = "TMEIdentifier"
-	uppIdentifierLabel     = "UPPIdentifier"
-)

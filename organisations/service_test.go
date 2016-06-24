@@ -10,89 +10,36 @@ import (
 )
 
 const (
-	fullOrgUUID                  = "4e484678-cf47-4168-b844-6adb47f8eb58"
-	privateOrgUUID               = "9e01380d-ac20-48a4-b187-88dc57f37e48"
-	minimalOrgUUID               = "33f93f25-3301-417e-9b20-50b27d215617"
-	oddCharOrgUUID               = "5bb679d7-334e-4d51-a676-b1a10daaab38"
-	dupeLeiIdentifierOrgUUID     = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
-	dupeOtherIdentifierOrgUUID   = "4b89a949-a032-4114-9a8c-f59c37170d65"
-	parentOrgUUID                = "de38231e-e481-4958-b470-e124b2ef5a34"
-	industryClassificationUUID   = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
-	authorityNotSupportedOrgUUID = "3166b06b-a7a7-40f7-bcb1-a13dc3e478dc"
+	fullOrgUUID                = "4e484678-cf47-4168-b844-6adb47f8eb58"
+	privateOrgUUID             = "9e01380d-ac20-48a4-b187-88dc57f37e48"
+	minimalOrgUUID             = "33f93f25-3301-417e-9b20-50b27d215617"
+	oddCharOrgUUID             = "5bb679d7-334e-4d51-a676-b1a10daaab38"
+	dupeLeiIdentifierOrgUUID   = "fbe74159-f4a0-4aa0-9cca-c2bbb9e8bffe"
+	dupeOtherIdentifierOrgUUID = "4b89a949-a032-4114-9a8c-f59c37170d65"
+	parentOrgUUID              = "de38231e-e481-4958-b470-e124b2ef5a34"
+	industryClassificationUUID = "c3d17865-f9d1-42f2-9ca2-4801cb5aacc0"
+	fsIdentifier               = "identifierValue"
+	fsIdentifierMinimal        = "identifierMinimalValue"
+	fsIdentifierOther          = "identifierOtherValue"
+	fsIdentifierAnother        = "anotherIdentifierValue"
+	leiCodeIdentifier          = "leiCodeIdentifier"
+	tmeIdentifier              = "tmeIdentifier"
+	tmeIdentifierAnother       = "tmeIdentifierAnother"
 )
 
 var uuidsToClean = []string{fullOrgUUID, privateOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID, industryClassificationUUID, parentOrgUUID}
 
-var fsIdentifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "identifierValue",
-}
-
-var fsIdentifierOther = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "identifierOtherValue",
-}
-
-var fsIdentifierAnother = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "anotherIdentifierValue",
-}
-
-var fsIdentifierMinimal = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "identifierMinimalValue",
-}
-
-var leiCodeIdentifier = identifier{
-	Authority:       leiAuthority,
-	IdentifierValue: "leiCodeIdentifier",
-}
-
-var tmeIdentifier = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifier",
-}
-
-var tmeIdentifierAnother = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifierAnother",
-}
-
-var uppFullOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: fullOrgUUID,
-}
-
-var uppMinimalOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: minimalOrgUUID,
-}
-
-var uppPrivateOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: privateOrgUUID,
-}
-
-var uppOddCharOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: oddCharOrgUUID,
-}
-
-var uppDupeLeiIdentifierOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: dupeLeiIdentifierOrgUUID,
-}
-
-var uppDupeOtherIdentifierOrgIdentifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: dupeOtherIdentifierOrgUUID,
-}
-
 var fullOrg = organisation{
-	UUID:                   fullOrgUUID,
-	Type:                   PublicCompany,
-	Identifiers:            []identifier{fsIdentifier, tmeIdentifier, uppFullOrgIdentifier, leiCodeIdentifier},
+	UUID: fullOrgUUID,
+	Type: PublicCompany,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{fullOrgUUID},
+		TME:               []string{tmeIdentifier},
+		FactsetIdentifier: fsIdentifier,
+		LeiCode:           leiCodeIdentifier,
+	},
 	ProperName:             "Proper Name",
+	PrefLabel:              "Pref label",
 	LegalName:              "Legal Name",
 	ShortName:              "Short Name",
 	HiddenLabel:            "Hidden Label",
@@ -105,9 +52,14 @@ var fullOrg = organisation{
 }
 
 var privateOrg = organisation{
-	UUID:                   privateOrgUUID,
-	Type:                   Organisation,
-	Identifiers:            []identifier{fsIdentifierAnother, tmeIdentifierAnother, uppPrivateOrgIdentifier, leiCodeIdentifier},
+	UUID: privateOrgUUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{privateOrgUUID},
+		TME:               []string{tmeIdentifierAnother},
+		FactsetIdentifier: fsIdentifierAnother,
+		LeiCode:           leiCodeIdentifier,
+	},
 	ProperName:             "Proper Name Ltd.",
 	LegalName:              "Legal Name Ltd.",
 	ShortName:              "Short Name Ltd.",
@@ -120,31 +72,49 @@ var privateOrg = organisation{
 }
 
 var minimalOrg = organisation{
-	UUID:        minimalOrgUUID,
-	Type:        Organisation,
-	Identifiers: []identifier{fsIdentifierMinimal, uppMinimalOrgIdentifier},
-	ProperName:  "Minimal Org Proper Name",
+	UUID: minimalOrgUUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{minimalOrgUUID},
+		FactsetIdentifier: fsIdentifierMinimal,
+		TME:               []string{},
+	},
+	ProperName: "Minimal Org Proper Name",
 }
 
 var dupeLeiIdentifierOrg = organisation{
-	UUID:        dupeLeiIdentifierOrgUUID,
-	Type:        Company,
-	Identifiers: []identifier{fsIdentifierOther, uppDupeLeiIdentifierOrgIdentifier, leiCodeIdentifier},
-	ProperName:  "Dupe Identifier Proper Name",
+	UUID: dupeLeiIdentifierOrgUUID,
+	Type: Company,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{dupeLeiIdentifierOrgUUID},
+		FactsetIdentifier: fsIdentifierOther,
+		LeiCode:           leiCodeIdentifier,
+		TME:               []string{},
+	},
+	ProperName: "Dupe Identifier Proper Name",
 }
 
 var dupeOtherIdentifierOrg = organisation{
-	UUID:        dupeOtherIdentifierOrgUUID,
-	Type:        Company,
-	Identifiers: []identifier{fsIdentifierOther, tmeIdentifier, uppDupeOtherIdentifierOrgIdentifier},
-	ProperName:  "Dupe Identifier Proper Name",
+	UUID: dupeOtherIdentifierOrgUUID,
+	Type: Company,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{dupeOtherIdentifierOrgUUID},
+		TME:               []string{tmeIdentifier},
+		FactsetIdentifier: fsIdentifierOther,
+	},
+	ProperName: "Dupe Identifier Proper Name",
 }
 
 var oddCharOrg = organisation{
-	UUID:               oddCharOrgUUID,
-	Type:               Company,
-	ProperName:         "TBWA\\Paling Walters Ltd.",
-	Identifiers:        []identifier{fsIdentifier, uppOddCharOrgIdentifier, leiCodeIdentifier},
+	UUID:       oddCharOrgUUID,
+	Type:       Company,
+	ProperName: "TBWA\\Paling Walters Ltd.",
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS:             []string{oddCharOrgUUID},
+		FactsetIdentifier: fsIdentifier,
+		LeiCode:           leiCodeIdentifier,
+		TME:               []string{},
+	},
 	ParentOrganisation: parentOrgUUID,
 	ShortName:          "TBWA\\Paling Walters",
 	FormerNames:        []string{"Paling Elli$ Cognis Ltd.", "Paling Ellis\\/ Ltd.", "Paling Walters Ltd.", "Paling Walter/'s Targis Ltd."},
@@ -166,33 +136,6 @@ func TestWriteNewOrganisation(t *testing.T) {
 	assert.NotEmpty(storedOrg)
 }
 
-func TestWriteNewOrganisationAuthorityNotSupported(t *testing.T) {
-	assert := assert.New(t)
-
-	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
-	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert, uuidsToClean)
-
-	var unsupporterIdentifier = identifier{
-		Authority:       "unsupported",
-		IdentifierValue: "leiCodeIdentifier",
-	}
-	var testOrg = organisation{
-		UUID:        authorityNotSupportedOrgUUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsIdentifier, unsupporterIdentifier},
-		ProperName:  "Proper Name",
-	}
-
-	assert.Error(cypherDriver.Write(testOrg))
-
-	storedOrg, _, err := cypherDriver.Read(authorityNotSupportedOrgUUID)
-
-	assert.NoError(err)
-	assert.Equal(storedOrg, organisation{})
-
-}
-
 func TestWriteWillUpdateOrg(t *testing.T) {
 	assert := assert.New(t)
 
@@ -207,9 +150,13 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	assert.Empty(storedOrg.(organisation).HiddenLabel, "Minimal org should not have a hidden label value.")
 
 	updatedOrg := organisation{
-		UUID:        minimalOrgUUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsIdentifier},
+		UUID: minimalOrgUUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsIdentifier,
+			TME:               []string{},
+			UUIDS:             []string{},
+		},
 		ProperName:  "Updated Name",
 		HiddenLabel: "No longer hidden",
 	}

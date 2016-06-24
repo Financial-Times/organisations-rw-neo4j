@@ -16,40 +16,30 @@ const (
 	transferOrg2UUID                = "3977bc1c-1026-45f0-b7db-d91ff25770fb"
 	fromUUID                        = "3d91a94c-6ce6-4ec9-a16b-8b89be574ecc"
 	toUUID                          = "ecd7319d-92f1-3c0a-9912-0b91186bf555"
+	fsTransferOrg1Identifier        = "org identifier 1"
+	fsTransferOrg2Identifier        = "org identifier 2"
 )
 
 var transferOrg1 = organisation{
-	UUID:        transferOrg1UUID,
-	Type:        Organisation,
-	Identifiers: []identifier{fsTransferOrg1Identifier, uppTransferOrg1Identifier},
-	ProperName:  "Org Proper Name 1",
+	UUID: transferOrg1UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		FactsetIdentifier: fsTransferOrg1Identifier,
+		UUIDS:             []string{transferOrg1UUID},
+		TME:               []string{},
+	},
+	ProperName: "Org Proper Name 1",
 }
 
 var transferOrg2 = organisation{
-	UUID:        transferOrg2UUID,
-	Type:        Organisation,
-	Identifiers: []identifier{fsTransferOrg2Identifier, uppTransferOrg2Identifier},
-	ProperName:  "Org Proper Name 2",
-}
-
-var fsTransferOrg1Identifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "org identifier 1",
-}
-
-var uppTransferOrg1Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: transferOrg1UUID,
-}
-
-var fsTransferOrg2Identifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "org identifier 2",
-}
-
-var uppTransferOrg2Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: transferOrg2UUID,
+	UUID: transferOrg2UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		FactsetIdentifier: fsTransferOrg2Identifier,
+		UUIDS:             []string{transferOrg2UUID},
+		TME:               []string{},
+	},
+	ProperName: "Org Proper Name 2",
 }
 
 var transferUUIDsToClean = []string{relationShipTransferContentUUID, transferOrg1UUID, transferOrg2UUID}

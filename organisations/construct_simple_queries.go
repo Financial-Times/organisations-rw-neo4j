@@ -9,7 +9,7 @@ func constructOrganisationProperties(o organisation) map[string]interface{} {
 	props := map[string]interface{}{
 		"uuid":       o.UUID,
 		"properName": o.ProperName,
-		"prefLabel":  o.ProperName,
+		"prefLabel":  o.PrefLabel,
 	}
 
 	setProps(&props, &o.LegalName, "legalName")
@@ -82,19 +82,16 @@ func constructCreateIndustryClassificationQuery(uuid string, industryClassificat
 	}
 }
 
-func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
-
-	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					CREATE (i:Identifier {value:{value} , authority:{authority}})
-					CREATE (o)<-[:IDENTIFIES]-(i)
+func createNewIdentifierQuery(uuid string, identifierLabel string, identifierValue string) *neoism.CypherQuery {
+	statementTemplate := fmt.Sprintf(`MERGE (t:Thing {uuid:{uuid}})
+					CREATE (i:Identifier {value:{value}})
+					MERGE (t)<-[:IDENTIFIES]-(i)
 					set i : %s `, identifierLabel)
-
 	query := &neoism.CypherQuery{
 		Statement: statementTemplate,
 		Parameters: map[string]interface{}{
-			"uuid":      uuid,
-			"value":     identifier.IdentifierValue,
-			"authority": identifier.Authority,
+			"uuid":  uuid,
+			"value": identifierValue,
 		},
 	}
 	return query
