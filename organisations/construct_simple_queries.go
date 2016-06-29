@@ -64,7 +64,10 @@ func constructDeleteEmptyNodeQuery(uuid string) *neoism.CypherQuery {
 
 func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
-		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
+		Statement: `MERGE (o:Thing {uuid: {uuid}})
+		  	    MERGE (parentupp:Identifier:UPPIdentifier{value:{paUuid}})
+                            MERGE (parentupp)-[:IDENTIFIES]->(p:Thing) ON CREATE SET p.uuid = {paUuid}
+		            MERGE (o)-[:SUB_ORGANISATION_OF]->(p)`,
 		Parameters: map[string]interface{}{
 			"uuid":   uuid,
 			"paUuid": parentUUID,
