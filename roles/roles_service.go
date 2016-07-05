@@ -2,6 +2,7 @@ package roles
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 )
@@ -23,7 +24,10 @@ func NewCypherDriver(cypherRunner neoutils.CypherRunner, indexManager neoutils.I
 
 //Initialise initialisation of the indexes
 func (pcd CypherDriver) Initialise() error {
-	return neoutils.EnsureConstraints(pcd.indexManager, map[string]string{"Role": "uuid"})
+	return neoutils.EnsureConstraints(pcd.indexManager, map[string]string{
+		"Role":              "uuid",
+		"FactsetIdentifier": "value",
+		"UPPIdentifier":     "value"})
 }
 
 // Check - Feeds into the Healthcheck and checks whether we can connect to Neo and that the datastore isn't empty
@@ -37,13 +41,18 @@ func (pcd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 		UUID              string   `json:"uuid"`
 		PrefLabel         string   `json:"prefLabel"`
 		FactsetIdentifier string   `json:"factsetIdentifier"`
+		UUIDs             []string `json:"uuids"`
 		Labels            []string `json:"labels"`
 	}{}
 
 	query := &neoism.CypherQuery{
-		Statement: `MATCH (n:Role {uuid:{uuid}}) return n.uuid
+		Statement: `MATCH (n:Role {uuid:{uuid}})
+		OPTIONAL MATCH (upp:UPPIdentifier)-[:IDENTIFIES]->(n)
+		OPTIONAL MATCH (factset:FactsetIdentifier)-[:IDENTIFIES]->(n)
+		return n.uuid
 		as uuid, n.prefLabel as prefLabel,
-		n.factsetIdentifier as factsetIdentifier,
+		factset.value as factsetIdentifier,
+		collect(upp.value) as uuids,
 		labels(n) as labels`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
@@ -75,74 +84,100 @@ func (pcd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 	}
 
 	if result.FactsetIdentifier != "" {
-		r.Identifiers = append(r.Identifiers, identifier{fsAuthority, result.FactsetIdentifier})
+		r.AlternativeIdentifiers.FactsetIdentifier = result.FactsetIdentifier
 	}
+
+	r.AlternativeIdentifiers.UUIDS = result.UUIDs
+
 	return r, true, nil
 }
 
 //Write - Writes a Role node
 func (pcd CypherDriver) Write(thing interface{}) error {
-	r := thing.(role)
+	roleToWrite := thing.(role)
 
-	params := map[string]interface{}{
-		"uuid": r.UUID,
+	//cleanUP all the previous IDENTIFIERS referring to that uuid
+	deletePreviousIdentifiersQuery := &neoism.CypherQuery{
+		Statement: `MATCH (t:Thing {uuid:{uuid}})
+		OPTIONAL MATCH (t)<-[iden:IDENTIFIES]-(i)
+		DELETE iden, i
+		REMOVE t:BoardRole`,
+		Parameters: map[string]interface{}{
+			"uuid": roleToWrite.UUID,
+		},
 	}
 
-	if r.PrefLabel != "" {
-		params["prefLabel"] = r.PrefLabel
-	}
-
-	for _, identifier := range r.Identifiers {
-		if identifier.Authority == fsAuthority {
-			params["factsetIdentifier"] = identifier.IdentifierValue
-		}
-	}
-
-	// TODO set BoardRole if isBoardRole is True
+	//create-update node for ROLE
 	statement := `MERGE (n:Thing {uuid: {uuid}})
 				set n={allprops}
 				set n :Role`
 
-	if r.IsBoardRole {
+	if roleToWrite.IsBoardRole {
 		statement += ` set n :BoardRole`
 	}
-	query := &neoism.CypherQuery{
+
+	createRoleQuery := &neoism.CypherQuery{
 		Statement: statement,
 		Parameters: map[string]interface{}{
-			"uuid":     r.UUID,
-			"allprops": params,
+			"uuid": roleToWrite.UUID,
+			"allprops": map[string]interface{}{
+				"uuid":      roleToWrite.UUID,
+				"prefLabel": roleToWrite.PrefLabel,
+			},
 		},
 	}
 
-	return pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
+	queryBatch := []*neoism.CypherQuery{deletePreviousIdentifiersQuery, createRoleQuery}
 
+	for _, alternativeUUID := range roleToWrite.AlternativeIdentifiers.UUIDS {
+		alternativeIdentifierQuery := createNewIdentifierQuery(roleToWrite.UUID, uppIdentifierLabel, alternativeUUID)
+		queryBatch = append(queryBatch, alternativeIdentifierQuery)
+	}
+
+	queryBatch = append(queryBatch, createNewIdentifierQuery(roleToWrite.UUID, factsetIdentifierLabel, roleToWrite.AlternativeIdentifiers.FactsetIdentifier))
+
+	return pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery(queryBatch))
+}
+
+func createNewIdentifierQuery(uuid string, identifierLabel string, identifierValue string) *neoism.CypherQuery {
+	statementTemplate := fmt.Sprintf(`MERGE (t:Thing {uuid:{uuid}})
+					CREATE (i:Identifier {value:{value}})
+					MERGE (t)<-[:IDENTIFIES]-(i)
+					set i : %s `, identifierLabel)
+	query := &neoism.CypherQuery{
+		Statement: statementTemplate,
+		Parameters: map[string]interface{}{
+			"uuid":  uuid,
+			"value": identifierValue,
+		},
+	}
+	return query
 }
 
 //Delete - Deletes a Role
 func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
-			MATCH (p:Thing {uuid: {uuid}})
-			REMOVE p:Role
-			REMOVE p:BoardRole
-			SET p={props}
+			MATCH (t:Thing {uuid: {uuid}})
+			OPTIONAL MATCH (t)<-[iden:IDENTIFIES]-(i:Identifier)
+			REMOVE t:Role
+			REMOVE t:BoardRole
+			DELETE iden, i
+			SET t = {uuid:{uuid}}
 		`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,
-			"props": map[string]interface{}{
-				"uuid": uuid,
-			},
 		},
 		IncludeStats: true,
 	}
 
 	removeNodeIfUnused := &neoism.CypherQuery{
 		Statement: `
-			MATCH (p:Thing {uuid: {uuid}})
-			OPTIONAL MATCH (p)-[a]-(x)
-			WITH p, count(a) AS relCount
+			MATCH (t:Thing {uuid: {uuid}})
+			OPTIONAL MATCH (t)-[a]-(x)
+			WITH t, count(a) AS relCount
 			WHERE relCount = 0
-			DELETE p
+			DELETE t
 		`,
 		Parameters: map[string]interface{}{
 			"uuid": uuid,

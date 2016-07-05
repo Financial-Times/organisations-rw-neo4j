@@ -20,8 +20,8 @@ func TestDelete(t *testing.T) {
 
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToDelete := role{UUID: uuid, PrefLabel: "TestRole",
-		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}, FactsetIdentifier: "FACTSETID"}
+	roleToDelete := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
 
 	assert.NoError(rolesDriver.Write(roleToDelete), "Failed to write role")
 
@@ -41,8 +41,8 @@ func TestCreateAllValuesPresent(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", IsBoardRole: false,
-		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}, FactsetIdentifier: "FACTSETID"}
+	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
 
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
 
@@ -56,8 +56,8 @@ func TestCreateHandlesSpecialCharacters(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, PrefLabel: "Honcho`s pürfèct", IsBoardRole: false,
-		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}, FactsetIdentifier: "FACTSETID"}
+	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
 
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
 
@@ -71,8 +71,8 @@ func TestCreateNotAllValuesPresent(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, PrefLabel: "Test", IsBoardRole: false,
-		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}, FactsetIdentifier: "FACTSETID"}
+	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
 
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
 
@@ -86,8 +86,8 @@ func TestCreateAddsBoardRoleLabelForBoardRole(t *testing.T) {
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
 
-	roleToWrite := role{UUID: uuid, PrefLabel: "Test", IsBoardRole: true,
-		Identifiers: []identifier{identifier{fsAuthority, "FACTSET_ID"}}}
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}, FactsetIdentifier: "FACTSETID"}
+	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
 	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
 
 	readRoleForUUIDAndCheckFieldsMatch(t, uuid, roleToWrite)
