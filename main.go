@@ -35,7 +35,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
 		}
-		batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, *batchSize)
+		batchRunner := neoutils.NewBatchCypherRunner(neoutils.TransactionalCypherRunner{db}, *batchSize)
 		organisationsDriver := organisations.NewCypherOrganisationService(batchRunner, db)
 		organisationsDriver.Initialise()
 
