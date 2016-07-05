@@ -1,6 +1,9 @@
 machine:
   services:
     - neo4j
+  neo4j:
+      version:
+        2.3.1
   environment:
     NEO4J_TEST_URL: http://neo4j:x@localhost:7474/db/data/
 test:
