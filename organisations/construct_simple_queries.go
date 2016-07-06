@@ -9,7 +9,7 @@ func constructOrganisationProperties(o organisation) map[string]interface{} {
 	props := map[string]interface{}{
 		"uuid":       o.UUID,
 		"properName": o.ProperName,
-		"prefLabel":  o.ProperName,
+		"prefLabel":  o.PrefLabel,
 	}
 
 	setProps(&props, &o.LegalName, "legalName")
@@ -64,7 +64,10 @@ func constructDeleteEmptyNodeQuery(uuid string) *neoism.CypherQuery {
 
 func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
-		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (p:Thing{uuid: {paUuid}}) MERGE (o)-[:SUB_ORGANISATION_OF]->(p) ",
+		Statement: `MERGE (o:Thing {uuid: {uuid}})
+		  	    MERGE (parentupp:Identifier:UPPIdentifier{value:{paUuid}})
+                            MERGE (parentupp)-[:IDENTIFIES]->(p:Thing) ON CREATE SET p.uuid = {paUuid}
+		            MERGE (o)-[:SUB_ORGANISATION_OF]->(p)`,
 		Parameters: map[string]interface{}{
 			"uuid":   uuid,
 			"paUuid": parentUUID,
@@ -74,7 +77,7 @@ func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neo
 
 func constructCreateIndustryClassificationQuery(uuid string, industryClassificationUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
-		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
+		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ",
 		Parameters: map[string]interface{}{
 			"uuid":    uuid,
 			"indUuid": industryClassificationUUID,
@@ -82,19 +85,16 @@ func constructCreateIndustryClassificationQuery(uuid string, industryClassificat
 	}
 }
 
-func addIdentifierQuery(identifier identifier, uuid string, identifierLabel string) *neoism.CypherQuery {
-
-	statementTemplate := fmt.Sprintf(`MERGE (o:Thing {uuid:{uuid}})
-					CREATE (i:Identifier {value:{value} , authority:{authority}})
-					CREATE (o)<-[:IDENTIFIES]-(i)
+func createNewIdentifierQuery(uuid string, identifierLabel string, identifierValue string) *neoism.CypherQuery {
+	statementTemplate := fmt.Sprintf(`MERGE (t:Thing {uuid:{uuid}})
+					CREATE (i:Identifier {value:{value}})
+					MERGE (t)<-[:IDENTIFIES]-(i)
 					set i : %s `, identifierLabel)
-
 	query := &neoism.CypherQuery{
 		Statement: statementTemplate,
 		Parameters: map[string]interface{}{
-			"uuid":      uuid,
-			"value":     identifier.IdentifierValue,
-			"authority": identifier.Authority,
+			"uuid":  uuid,
+			"value": identifierValue,
 		},
 	}
 	return query

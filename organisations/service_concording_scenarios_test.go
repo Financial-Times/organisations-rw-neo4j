@@ -4,124 +4,86 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
-	"github.com/Financial-Times/neo-utils-go/neoutils"
 )
 
 const (
-	org1UUID    = "0d99ab07-3b0a-4313-939e-caa02db23aa1"
-	org2UUID    = "b40d53d3-3b0d-4069-90d9-0ccf9d7e1d0c"
-	org3UUID    = "ba956ba9-e552-4abf-9850-1346da690bb8"
-	org9UUID = "bbb7173b-2e90-4cc5-b439-252427e46cd0"
-	org8UUID = "5c510ad1-2b73-4375-90e1-6ccbc50bd21f"
-	contentUUID = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
+	org1UUID              = "0d99ab07-3b0a-4313-939e-caa02db23aa1"
+	org2UUID              = "b40d53d3-3b0d-4069-90d9-0ccf9d7e1d0c"
+	org3UUID              = "ba956ba9-e552-4abf-9850-1346da690bb8"
+	org9UUID              = "bbb7173b-2e90-4cc5-b439-252427e46cd0"
+	org8UUID              = "5c510ad1-2b73-4375-90e1-6ccbc50bd21f"
+	contentUUID           = "c3bce4dc-c857-4fe6-8277-61c0294d9187"
+	fsOrg1Identifier      = "org1 factset id"
+	fsOrg8Identifier      = "org8 factset id"
+	leiCodeOrg8Identifier = "leiCodeIdentifier org8"
+	leiCodeOrgxIdentifier = "leiCodeIdentifier"
+	tmeOrg2Identifier     = "tmeIdentifier org2"
+	tmeOrg3Identifier     = "tmeIdentifier org3"
+	tmeOrg8Identifier     = "tmeIdentifier org8"
+	tmeOrg9Identifier     = "tmeIdentifier org9"
 )
 
 var concordedUUIDs = []string{org1UUID, org2UUID, org3UUID, org9UUID, org8UUID}
 
-var uppOrg1Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: org1UUID,
-}
-
-var uppOrg2Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: org2UUID,
-}
-
-var uppOrg3Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: org3UUID,
-}
-
-var uppOrg8Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: org8UUID,
-}
-
-var uppOrg9Identifier = identifier{
-	Authority:       uppAuthority,
-	IdentifierValue: org9UUID,
-}
-
-var fsOrg1Identifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "org1 factset id",
-}
-
-var fsOrg8Identifier = identifier{
-	Authority:       fsAuthority,
-	IdentifierValue: "org8 factset id",
-}
-
-var leiCodeOrg8Identifier = identifier{
-	Authority:       leiAuthority,
-	IdentifierValue: "leiCodeIdentifier org8",
-}
-
-var leiCodeOrgxIdentifier = identifier{
-	Authority:       leiAuthority,
-	IdentifierValue: "leiCodeIdentifier",
-}
-
-var tmeOrg2Identifier = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifier org2",
-}
-
-var tmeOrg3Identifier = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifier org3",
-}
-
-var tmeOrg8Identifier = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifier org8",
-}
-
-var tmeOrg9Identifier = identifier{
-	Authority:       tmeAuthority,
-	IdentifierValue: "tmeIdentifier org9",
-}
-
 var org1 = organisation{
-	UUID:        org1UUID,
-	Type:        Organisation,
-	Identifiers: []identifier{fsOrg1Identifier, uppOrg1Identifier, leiCodeOrgxIdentifier},
-	ProperName:  "Proper Name 1",
+	UUID: org1UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		FactsetIdentifier: fsOrg1Identifier,
+		UUIDS:             []string{org1UUID},
+		LeiCode:           leiCodeOrgxIdentifier,
+		TME:               []string{},
+	},
+	ProperName: "Proper Name 1",
 }
 
 var org2 = organisation{
-	UUID:               org2UUID,
-	Type:               Organisation,
-	Identifiers:        []identifier{tmeOrg2Identifier, uppOrg2Identifier},
+	UUID: org2UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS: []string{org2UUID},
+		TME:   []string{tmeOrg2Identifier},
+	},
 	ProperName:         "Proper Name 2",
 	ParentOrganisation: org8UUID,
 }
 
 var org3 = organisation{
-	UUID:               org3UUID,
-	Type:               Organisation,
-	Identifiers:        []identifier{tmeOrg3Identifier, uppOrg3Identifier},
+	UUID: org3UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS: []string{org3UUID},
+		TME:   []string{tmeOrg3Identifier},
+	},
 	ProperName:         "Proper Name 3",
 	ParentOrganisation: org2UUID,
 }
 
 var org8 = organisation{
-	UUID:        org8UUID,
-	Type:        Organisation,
-	Identifiers: []identifier{fsOrg8Identifier, tmeOrg8Identifier, uppOrg8Identifier, leiCodeOrg8Identifier},
-	ProperName:  "Proper Name 8",
+	UUID: org8UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		FactsetIdentifier: fsOrg8Identifier,
+		UUIDS:             []string{org8UUID},
+		TME:               []string{tmeOrg8Identifier},
+		LeiCode:           leiCodeOrg8Identifier,
+	},
+	ProperName: "Proper Name 8",
 }
 
 var org9 = organisation{
-	UUID:        org9UUID,
-	Type:        Organisation,
-	Identifiers: []identifier{tmeOrg9Identifier, uppOrg9Identifier},
-	ProperName:  "Proper Name 9",
+	UUID: org9UUID,
+	Type: Organisation,
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDS: []string{org9UUID},
+		TME:   []string{tmeOrg9Identifier},
+	},
+	ProperName: "Proper Name 9",
 }
 
 func TestConcordeThreeOrganisations(t *testing.T) {
@@ -132,10 +94,15 @@ func TestConcordeThreeOrganisations(t *testing.T) {
 	defer cleanDB(db, t, assert, concordedUUIDs)
 
 	org1Updated := organisation{
-		UUID:        org1UUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsOrg1Identifier, tmeOrg2Identifier, tmeOrg9Identifier, uppOrg1Identifier, uppOrg2Identifier, uppOrg9Identifier, leiCodeOrgxIdentifier},
-		ProperName:  "Updated Name",
+		UUID: org1UUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsOrg1Identifier,
+			UUIDS:             []string{org1UUID, org2UUID, org9UUID},
+			LeiCode:           leiCodeOrgxIdentifier,
+			TME:               []string{tmeOrg2Identifier, tmeOrg9Identifier},
+		},
+		ProperName: "Updated Name",
 	}
 
 	assert.NoError(cypherDriver.Write(org1))
@@ -198,9 +165,15 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 
 	//STEP3: concorde org1, with org2 and org9
 	updatedOrg1 := organisation{
-		UUID:               org1UUID,
-		Type:               Organisation,
-		Identifiers:        []identifier{fsOrg1Identifier, tmeOrg2Identifier, tmeOrg9Identifier, uppOrg1Identifier, uppOrg2Identifier, uppOrg9Identifier, leiCodeOrgxIdentifier}, // should come out from the transformer like this, otherwise won't be merged
+		UUID: org1UUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsOrg1Identifier,
+			UUIDS:             []string{org1UUID, org2UUID, org9UUID},
+			LeiCode:           leiCodeOrgxIdentifier,
+			TME:               []string{tmeOrg2Identifier, tmeOrg9Identifier},
+		},
+		// should come out from the transformer like this, otherwise won't be merged
 		ProperName:         "Updated Name",
 		ParentOrganisation: org8UUID, // should come out from the transformer - otherwise won't be transferred
 	}
@@ -227,8 +200,8 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(0, len(transferredPropertyRL))
 	assert.Equal(2, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type:"MENTIONS", PlatformVersion:"v2"})
-	assert.Contains(transferredPropertyLR, property{Type:"SUB_ORGANISATION_OF", PlatformVersion:""})
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v2"})
+	assert.Contains(transferredPropertyLR, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 
 	transferredPropertyLR, transferredPropertyRL, err = readRelationshipDetails(cypherDriver.cypherRunner, "Identifier", org8UUID)
 	assert.Nil(err)
@@ -248,17 +221,17 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	transferredPropertyLR, transferredPropertyRL, err = readRelationshipDetails(cypherDriver.cypherRunner, "Thing", org1UUID)
 	assert.Nil(err)
 	assert.Equal(3, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type:"MENTIONS", PlatformVersion:"v2"})
-	assert.Contains(transferredPropertyLR, property{Type:"MENTIONS", PlatformVersion:"v1"})
-	assert.Contains(transferredPropertyLR, property{Type:"ABOUT", PlatformVersion:"v2"})
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v2"})
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v1"})
+	assert.Contains(transferredPropertyLR, property{Type: "ABOUT", PlatformVersion: "v2"})
 	assert.Equal(1, len(transferredPropertyRL))
-	assert.Contains(transferredPropertyRL, property{Type:"SUB_ORGANISATION_OF", PlatformVersion:""})
+	assert.Contains(transferredPropertyRL, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 
 	transferredPropertyLR, transferredPropertyRL, err = readRelationshipDetails(cypherDriver.cypherRunner, "Identifier", org1UUID)
 	assert.Nil(err)
 	assert.Equal(0, len(transferredPropertyRL))
 	assert.Equal(7, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type:"IDENTIFIES", PlatformVersion:""})
+	assert.Contains(transferredPropertyLR, property{Type: "IDENTIFIES", PlatformVersion: ""})
 	for _, rel := range transferredPropertyLR {
 		assert.Equal("IDENTIFIES", rel.Type)
 		assert.Equal("", rel.PlatformVersion)
@@ -266,7 +239,7 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 }
 
 // Concorde nodes with incoming and outgoing has-organisation-of relationships
-func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T){
+func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T) {
 	assert := assert.New(t)
 	//4 nodes with:
 	// [org3]-[sub-organisation-of]->[org2]
@@ -295,9 +268,13 @@ func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T){
 
 	//Step 2: concorde org1 with org2
 	updatedOrg1 := organisation{
-		UUID:               org1UUID,
-		Type:               Organisation,
-		Identifiers:        []identifier{fsOrg1Identifier, tmeOrg2Identifier, uppOrg1Identifier, uppOrg2Identifier}, // should come out from the transformer like this, otherwise won't be merged
+		UUID: org1UUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsOrg1Identifier,
+			UUIDS:             []string{org1UUID, org2UUID},
+			TME:               []string{tmeOrg2Identifier},
+		}, // should come out from the transformer like this, otherwise won't be merged
 		ProperName:         "Updated Name",
 		ParentOrganisation: org8UUID, // should come out from the transformer - otherwise won't be transferred
 	}
@@ -322,25 +299,28 @@ func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T){
 	transferredPropertyLR, transferredPropertyRL, err := readRelationshipDetails(cypherDriver.cypherRunner, "Thing", org1UUID)
 	assert.Nil(err)
 	assert.Equal(1, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type:"SUB_ORGANISATION_OF", PlatformVersion:""})
+	assert.Contains(transferredPropertyLR, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 	assert.Equal(1, len(transferredPropertyRL))
-	assert.Contains(transferredPropertyRL, property{Type:"SUB_ORGANISATION_OF", PlatformVersion:""})
+	assert.Contains(transferredPropertyRL, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 
 }
 
 // Check that alternative nodes are deleted at concordence, but identifiers are kept
 func TestConcordeOrgsAndDeleteAlternativeNodes(t *testing.T) {
 	assert := assert.New(t)
-
 	db := getDatabaseConnectionAndCheckClean(t, assert, concordedUUIDs)
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, concordedUUIDs)
 
 	updatedOrg1 := organisation{
-		UUID:        org1UUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsOrg1Identifier, uppOrg1Identifier, uppOrg2Identifier},
-		ProperName:  "Updated Name",
+		UUID: org1UUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsOrg1Identifier,
+			UUIDS:             []string{org1UUID, org2UUID},
+			TME:               []string{},
+		},
+		ProperName: "Updated Name",
 	}
 
 	assert.NoError(cypherDriver.Write(org1))
@@ -381,10 +361,14 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	assert.Nil(err)
 
 	updatedOrg1 := organisation{
-		UUID:        org1UUID,
-		Type:        Organisation,
-		Identifiers: []identifier{fsOrg8Identifier, uppOrg1Identifier, uppOrg2Identifier},
-		ProperName:  "Updated Name",
+		UUID: org1UUID,
+		Type: Organisation,
+		AlternativeIdentifiers: alternativeIdentifiers{
+			FactsetIdentifier: fsOrg8Identifier,
+			UUIDS:             []string{org1UUID, org2UUID},
+			TME:               []string{},
+		},
+		ProperName:         "Updated Name",
 		ParentOrganisation: org8UUID,
 	}
 
@@ -409,10 +393,10 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	transferredPropertyLR, transferredPropertyRL, err := readRelationshipDetails(cypherDriver.cypherRunner, "Thing", org1UUID)
 	assert.Nil(err)
 	assert.Equal(2, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type:"MENTIONS", PlatformVersion:"v1"})
-	assert.Contains(transferredPropertyLR, property{Type:"ABOUT", PlatformVersion:"v1"})
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v1"})
+	assert.Contains(transferredPropertyLR, property{Type: "ABOUT", PlatformVersion: "v1"})
 	assert.Equal(1, len(transferredPropertyRL))
-	assert.Contains(transferredPropertyRL, property{Type:"SUB_ORGANISATION_OF", PlatformVersion:""})
+	assert.Contains(transferredPropertyRL, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 }
 
 func writeJSONToService(service annotations.Service, pathToJSONFile string, contentUUID string, assert *assert.Assertions) {
@@ -443,7 +427,7 @@ func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotat
 }
 
 type property struct {
-	Type string `json:"name"`
+	Type            string `json:"name"`
 	PlatformVersion string `json:"r.platformVersion"`
 }
 
@@ -455,7 +439,7 @@ func readRelationshipDetails(cypherRunner neoutils.CypherRunner, contentType str
 		Statement: fmt.Sprintf(`match (co:%s)-[r]->(c:Thing{uuid:{uuid}})
  				return r.platformVersion, type(r) as name`, contentType),
 		Parameters: map[string]interface{}{
-			"uuid":  orgUUID,
+			"uuid": orgUUID,
 		},
 		Result: &transferredLRProperty,
 	}
@@ -465,7 +449,7 @@ func readRelationshipDetails(cypherRunner neoutils.CypherRunner, contentType str
 		Statement: fmt.Sprintf(`match (co:%s)<-[r]-(c:Thing{uuid:{uuid}})
  				return r.platformVersion, type(r) as name`, contentType),
 		Parameters: map[string]interface{}{
-			"uuid":  orgUUID,
+			"uuid": orgUUID,
 		},
 		Result: &transferredRLProperty,
 	}
