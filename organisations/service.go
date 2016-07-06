@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
+	"github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 	"sort"
 )
@@ -110,6 +111,7 @@ func (cd service) Write(thing interface{}) error {
 		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
+	logrus.Infof("Query being run: %v", queries)
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
