@@ -5,7 +5,9 @@ dependencies:
   pre:
     - wget --output-document=neo4j.tar.gz  https://neo4j.com/artifact.php?name=neo4j-community-2.3.1-unix.tar.gz
     - tar xf neo4j.tar.gz
-    - ./neo4j-community-2.3.1/bin/neo4j start
+    - ./neo4j-community-2.3.1/bin/neo4j start:
+        background: true
+    - sleep 10
 test:
   pre:
     - 'curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d ''{"password":"x"}''  http://localhost:7474/user/neo4j/password'
