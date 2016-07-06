@@ -309,10 +309,7 @@ func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T) {
 // Check that alternative nodes are deleted at concordence, but identifiers are kept
 func TestConcordeOrgsAndDeleteAlternativeNodes(t *testing.T) {
 	assert := assert.New(t)
-
-	logrus.Infof("Before clean")
 	db := getDatabaseConnectionAndCheckClean(t, assert, concordedUUIDs)
-	logrus.Infof("After clean")
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, concordedUUIDs)
 
@@ -326,9 +323,6 @@ func TestConcordeOrgsAndDeleteAlternativeNodes(t *testing.T) {
 		},
 		ProperName: "Updated Name",
 	}
-
-	logrus.Infof("Org1: %v", org1)
-	logrus.Infof("Org2: %v", org2)
 
 	assert.NoError(cypherDriver.Write(org1))
 	assert.NoError(cypherDriver.Write(org2))

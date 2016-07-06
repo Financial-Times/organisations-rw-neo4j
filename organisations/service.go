@@ -111,12 +111,6 @@ func (cd service) Write(thing interface{}) error {
 		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
-
-	// Temporary while trying to fix circle ci
-	for _, queryPointer := range queries {
-		logrus.Infof("QUERY: %v", *queryPointer)
-	}
-
 	return cd.cypherRunner.CypherBatch(queries)
 }
 
