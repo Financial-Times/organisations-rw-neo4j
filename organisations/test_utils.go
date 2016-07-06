@@ -66,7 +66,7 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuids
 	assert.NoError(err)
 }
 
-func containsNumberOf(rels relationships, rel string) (int) {
+func containsNumberOf(rels relationships, rel string) int {
 	nr := 0
 	for _, foundRel := range rels {
 		if foundRel.RelationshipType == rel {

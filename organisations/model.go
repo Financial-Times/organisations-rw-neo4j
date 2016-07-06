@@ -1,56 +1,40 @@
 package organisations
 
 import "errors"
-import "sort"
 
 //OrgType is the type of an Organisation
 type OrgType string
 
-//SortedIdentifiers is an array of ordered identifiers
-type SortedIdentifiers []identifier
-
 type organisation struct {
-	UUID                   string       `json:"uuid"`
-	Type                   OrgType      `json:"type"`
-	ProperName             string       `json:"properName"`
-	LegalName              string       `json:"legalName,omitempty"`
-	ShortName              string       `json:"shortName,omitempty"`
-	HiddenLabel            string       `json:"hiddenLabel,omitempty"`
-	Identifiers            []identifier `json:"identifiers"`
-	TradeNames             []string     `json:"tradeNames,omitempty"`
-	LocalNames             []string     `json:"localNames,omitempty"`
-	FormerNames            []string     `json:"formerNames,omitempty"`
-	Aliases                []string     `json:"aliases,omitempty"`
-	IndustryClassification string       `json:"industryClassification,omitempty"`
-	ParentOrganisation     string       `json:"parentOrganisation,omitempty"`
+	UUID                   string                 `json:"uuid"`
+	Type                   OrgType                `json:"type"`
+	ProperName             string                 `json:"properName"`
+	PrefLabel              string                 `json:"prefLabel"`
+	LegalName              string                 `json:"legalName,omitempty"`
+	ShortName              string                 `json:"shortName,omitempty"`
+	HiddenLabel            string                 `json:"hiddenLabel,omitempty"`
+	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers"`
+	TradeNames             []string               `json:"tradeNames,omitempty"`
+	LocalNames             []string               `json:"localNames,omitempty"`
+	FormerNames            []string               `json:"formerNames,omitempty"`
+	Aliases                []string               `json:"aliases,omitempty"`
+	IndustryClassification string                 `json:"industryClassification,omitempty"`
+	ParentOrganisation     string                 `json:"parentOrganisation,omitempty"`
 }
 
-type identifier struct {
-	Authority       string `json:"authority"`
-	IdentifierValue string `json:"identifierValue"`
+type alternativeIdentifiers struct {
+	TME               []string `json:"TME,omitempty"`
+	UUIDS             []string `json:"uuids"`
+	FactsetIdentifier string   `json:"factsetIdentifier,omitempty"`
+	LeiCode           string   `json:"leiCode,omitempty"`
 }
 
-func sortIdentifiers(iden []identifier) {
-	sort.Sort(SortedIdentifiers(iden))
-}
-
-// these three are the implementation of sort interface
-func (si SortedIdentifiers) Len() int {
-	return len(si)
-}
-
-func (si SortedIdentifiers) Swap(i, j int) {
-	si[i], si[j] = si[j], si[i]
-}
-
-func (si SortedIdentifiers) Less(i, j int) bool {
-
-	if si[i].Authority == si[j].Authority {
-		return si[i].IdentifierValue < si[j].IdentifierValue
-	} else {
-		return si[i].Authority < si[j].Authority
-	}
-}
+const (
+	tmeIdentifierLabel     = "TMEIdentifier"
+	uppIdentifierLabel     = "UPPIdentifier"
+	factsetIdentifierLabel = "FactsetIdentifier"
+	leiIdentifierLabel     = "LegalEntityIdentifier"
+)
 
 func (o OrgType) String() (error, string) {
 
