@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
-	"github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"os"
