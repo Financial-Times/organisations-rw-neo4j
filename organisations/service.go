@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
-	"github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 	"sort"
 )
