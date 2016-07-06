@@ -77,7 +77,7 @@ func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neo
 
 func constructCreateIndustryClassificationQuery(uuid string, industryClassificationUUID string) *neoism.CypherQuery {
 	return &neoism.CypherQuery{
-		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o:Thing {uuid: {uuid}})-[:HAS_CLASSIFICATION]->(ic) ",
+		Statement: "MERGE (o:Thing {uuid: {uuid}}) MERGE (ic:Thing{uuid: {indUuid}}) MERGE (o)-[:HAS_CLASSIFICATION]->(ic) ",
 		Parameters: map[string]interface{}{
 			"uuid":    uuid,
 			"indUuid": industryClassificationUUID,
