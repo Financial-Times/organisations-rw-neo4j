@@ -71,18 +71,18 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		engs := map[string]baseftrwapp.Service{
+		services := map[string]baseftrwapp.Service{
 			"organisations": organisationsDriver,
 		}
 
 		var checks []v1a.Check
-		for _, e := range engs {
-			checks = append(checks, makeCheck(e, batchRunner))
+		for _, service := range services {
+			checks = append(checks, makeCheck(service, batchRunner))
 		}
 
 		healthHandler := v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...)
 		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
-			Engs:          engs,
+			Services:      services,
 			HealthHandler: healthHandler,
 			Port:          *port,
 			ServiceName:   "organisations-rw-neo4j",
