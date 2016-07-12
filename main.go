@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"net/http"
+
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -11,7 +13,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
 	"github.com/jmcvetta/neoism"
-	"net/http"
 )
 
 func main() {
@@ -58,10 +59,6 @@ func main() {
 		Desc:  "environment this app is running in",
 	})
 
-
-	log.SetLevel(log.InfoLevel)
-	log.Println("Application started with args %s", os.Args)
-
 	app.Action = func() {
 		db, err := neoism.Connect(*neoURL)
 		db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
@@ -83,9 +80,15 @@ func main() {
 			checks = append(checks, makeCheck(e, batchRunner))
 		}
 
-		baseftrwapp.RunServer(engs,
-			v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...),
-			*port, "organisations-rw-neo4j", *env)
+		healthHandler := v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...)
+		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
+			Engs:          engs,
+			HealthHandler: healthHandler,
+			Port:          *port,
+			ServiceName:   "organisations-rw-neo4j",
+			Env:           *env,
+			EnableReqLog:  false,
+		})
 	}
 	log.SetLevel(log.InfoLevel)
 	log.Println("Application started with args %s", os.Args)
@@ -100,6 +103,8 @@ func makeCheck(service baseftrwapp.Service, cr neoutils.CypherRunner) v1a.Check 
 		PanicGuide:       "TODO - write panic guide",
 		Severity:         1,
 		TechnicalSummary: fmt.Sprintf("Cannot connect to Neo4j instance %s with at least one organisation loaded in it", cr),
-		Checker:          func() (string, error) { return "", service.Check() },
+		Checker: func() (string, error) {
+			return "", service.Check()
+		},
 	}
 }
