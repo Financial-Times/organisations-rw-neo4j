@@ -24,6 +24,15 @@ func NewCypherDriver(cypherRunner neoutils.CypherRunner, indexManager neoutils.I
 
 //Initialise initialisation of the indexes
 func (pcd CypherDriver) Initialise() error {
+
+	err := neoutils.EnsureIndexes(pcd.indexManager,  map[string]string{
+		"Identifier": "value",
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return neoutils.EnsureConstraints(pcd.indexManager, map[string]string{
 		"Role":              "uuid",
 		"FactsetIdentifier": "value",
