@@ -19,6 +19,15 @@ func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManag
 }
 
 func (cd service) Initialise() error {
+
+	err := neoutils.EnsureIndexes(cd.indexManager,  map[string]string{
+		"Identifier": "value",
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
 		"Thing":             "uuid",
 		"Concept":           "uuid",
