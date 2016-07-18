@@ -72,18 +72,23 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		engs := map[string]baseftrwapp.Service{
+		services := map[string]baseftrwapp.Service{
 			"roles": rolesDriver,
 		}
 
 		var checks []v1a.Check
-		for _, e := range engs {
-			checks = append(checks, makeCheck(e, batchRunner))
+		for _, service := range services {
+			checks = append(checks, makeCheck(service, batchRunner))
 		}
 
-		baseftrwapp.RunServer(engs,
-			v1a.Handler("ft-roles_rw_neo4j ServiceModule", "Writes 'roles' to Neo4j, usually as part of a bulk upload done on a schedule", checks...),
-			*port, "roles-rw-neo4j", *env)
+		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
+			Services:      services,
+			HealthHandler: v1a.Handler("ft-roles_rw_neo4j ServiceModule", "Writes 'roles' to Neo4j, usually as part of a bulk upload done on a schedule", checks...),
+			Port:          *port,
+			ServiceName:   "roles-rw-neo4j",
+			Env:           *env,
+			EnableReqLog:  false,
+		})
 	}
 
 	log.SetLevel(log.InfoLevel)
