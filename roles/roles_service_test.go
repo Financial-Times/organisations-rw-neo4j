@@ -51,6 +51,21 @@ func TestCreateAllValuesPresent(t *testing.T) {
 	cleanUp(t, uuid)
 }
 
+func TestCreateNoFacsetIdentifierPresent(t *testing.T) {
+	assert := assert.New(t)
+	uuid := "12345"
+	rolesDriver = getRolesCypherDriver(t)
+
+	altId := alternativeIdentifiers{UUIDS: []string{"UUID"}}
+	roleToWrite := role{UUID: uuid, PrefLabel: "TestRole", AlternativeIdentifiers: altId}
+
+	assert.NoError(rolesDriver.Write(roleToWrite), "Failed to write role")
+
+	readRoleForUUIDAndCheckFieldsMatch(t, uuid, roleToWrite)
+
+	cleanUp(t, uuid)
+}
+
 func TestCreateHandlesSpecialCharacters(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "12345"
