@@ -3,6 +3,7 @@ package roles
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 )
@@ -143,7 +144,9 @@ func (pcd CypherDriver) Write(thing interface{}) error {
 		queryBatch = append(queryBatch, alternativeIdentifierQuery)
 	}
 
-	queryBatch = append(queryBatch, createNewIdentifierQuery(roleToWrite.UUID, factsetIdentifierLabel, roleToWrite.AlternativeIdentifiers.FactsetIdentifier))
+	if roleToWrite.AlternativeIdentifiers.FactsetIdentifier != "" {
+		queryBatch = append(queryBatch, createNewIdentifierQuery(roleToWrite.UUID, factsetIdentifierLabel, roleToWrite.AlternativeIdentifiers.FactsetIdentifier))
+	}
 
 	return pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery(queryBatch))
 }
