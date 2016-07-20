@@ -51,7 +51,7 @@ func TestCreateAllValuesPresent(t *testing.T) {
 	cleanUp(t, uuid)
 }
 
-func TestCreateNoFacsetIdentifierPresent(t *testing.T) {
+func TestCreateNoFactsetIdentifierPresent(t *testing.T) {
 	assert := assert.New(t)
 	uuid := "12345"
 	rolesDriver = getRolesCypherDriver(t)
