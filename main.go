@@ -81,14 +81,10 @@ func main() {
 		}
 
 		healthHandler := v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...)
-		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
-			Services:      services,
-			HealthHandler: healthHandler,
-			Port:          *port,
-			ServiceName:   "organisations-rw-neo4j",
-			Env:           *env,
-			EnableReqLog:  false,
-		})
+		baseftrwapp.RunServer(services,
+			healthHandler,
+			*port, "organisations-rw-neo4j",
+			*env)
 	}
 	log.SetLevel(log.InfoLevel)
 	log.Println("Application started with args %s", os.Args)
