@@ -33,7 +33,7 @@ func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions,
 	return db
 }
 
-func checkDbClean(db *neoism.Database, t *testing.T, uuidsToClean []string) {
+func checkDbClean(db neoutils.CypherRunner, t *testing.T, uuidsToClean []string) {
 	assert := assert.New(t)
 
 	result := []struct {
@@ -49,12 +49,12 @@ func checkDbClean(db *neoism.Database, t *testing.T, uuidsToClean []string) {
 		},
 		Result: &result,
 	}
-	err := db.Cypher(&checkGraph)
+	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
 	assert.NoError(err)
 	assert.Empty(result)
 }
 
-func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
+func cleanDB(db neoutils.CypherRunner, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
 	qs := []*neoism.CypherQuery{}
 
 	for _, uuid := range uuidsToClean {

@@ -2,6 +2,7 @@ package organisations
 
 import (
 	"fmt"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"strings"
@@ -233,7 +234,7 @@ func TestTransferRelationships(t *testing.T) {
 	assert.Equal("someValue", transferredProperty[0].Value)
 }
 
-func cleanRelationshipDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
+func cleanRelationshipDB(db neoutils.CypherRunner, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
 	cleanDB(db, t, assert, uuidsToClean)
 
 	qs := []*neoism.CypherQuery{
