@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"net/http"
-
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
-	"github.com/jmcvetta/neoism"
 )
 
 func main() {
@@ -60,13 +57,13 @@ func main() {
 	})
 
 	app.Action = func() {
-		db, err := neoism.Connect(*neoURL)
-		db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
+		conf := neoutils.DefaultConnectionConfig()
+		conf.BatchSize = *batchSize
+		db, err := neoutils.Connect(*neoURL, conf)
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
 		}
-		batchRunner := neoutils.NewBatchCypherRunner(neoutils.TransactionalCypherRunner{db}, *batchSize)
-		organisationsDriver := organisations.NewCypherOrganisationService(batchRunner, db)
+		organisationsDriver := organisations.NewCypherOrganisationService(db)
 		organisationsDriver.Initialise()
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
@@ -77,7 +74,7 @@ func main() {
 
 		var checks []v1a.Check
 		for _, service := range services {
-			checks = append(checks, makeCheck(service, batchRunner))
+			checks = append(checks, makeCheck(service, db))
 		}
 
 		healthHandler := v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...)

@@ -9,24 +9,26 @@ import (
 	"testing"
 )
 
-func getDatabaseConnection(assert *assert.Assertions) *neoism.Database {
+func getDatabaseConnection(assert *assert.Assertions) neoutils.NeoConnection {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "http://localhost:7474/db/data"
 	}
 
-	db, err := neoism.Connect(url)
+	conf := neoutils.DefaultConnectionConfig()
+	conf.Transactional = false
+	db, err := neoutils.Connect(url, conf)
 	assert.NoError(err, "Failed to connect to Neo4j")
 	return db
 }
 
-func getCypherDriver(db *neoism.Database) service {
-	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
+func getCypherDriver(db neoutils.NeoConnection) service {
+	cr := NewCypherOrganisationService(db)
 	cr.Initialise()
 	return cr
 }
 
-func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions, uuidsToClean []string) *neoism.Database {
+func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions, uuidsToClean []string) neoutils.NeoConnection {
 	db := getDatabaseConnection(assert)
 	cleanDB(db, t, assert, uuidsToClean)
 	checkDbClean(db, t, uuidsToClean)

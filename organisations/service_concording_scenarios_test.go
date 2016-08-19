@@ -154,12 +154,12 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	//STEP 2: write relationships
 
 	//write V2 mentions, and about annotation for org2UUID, write V2 mentions annotation for org8UUID
-	v2AnnotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, db, "v2")
+	v2AnnotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, neoutils.UnderlyingDB(cypherDriver.cypherRunner), "v2")
 	assert.NoError(v2AnnotationsRW.Initialise())
 	writeJSONToService(v2AnnotationsRW, "./test-resources/annotationBodyForOrg2AndOrg8.json", contentUUID, assert)
 
 	//write V1 mentions annotation for org1UUID and org9UUID - considered as major mentions
-	v1AnnotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, db, "v1")
+	v1AnnotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, neoutils.UnderlyingDB(cypherDriver.cypherRunner), "v1")
 	assert.NoError(v1AnnotationsRW.Initialise())
 	writeJSONToService(v1AnnotationsRW, "./test-resources/annotationBodyForOrg1AndOrg9.json", contentUUID, assert)
 
@@ -345,7 +345,7 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	db := getDatabaseConnectionAndCheckClean(t, assert, concordedUUIDs)
 	cypherDriver := getCypherDriver(db)
 
-	annotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, db, "v1")
+	annotationsRW := annotations.NewAnnotationsService(cypherDriver.cypherRunner, neoutils.UnderlyingDB(cypherDriver.cypherRunner), "v1")
 	assert.NoError(annotationsRW.Initialise())
 
 	defer cleanDB(db, t, assert, concordedUUIDs)
@@ -409,7 +409,7 @@ func writeJSONToService(service annotations.Service, pathToJSONFile string, cont
 	assert.NoError(errrr)
 }
 
-func deleteAllViaService(db *neoism.Database, assert *assert.Assertions, annotationsRW annotations.Service) {
+func deleteAllViaService(db neoutils.CypherRunner, assert *assert.Assertions, annotationsRW annotations.Service) {
 	_, err := annotationsRW.Delete(contentUUID)
 	assert.Nil(err)
 

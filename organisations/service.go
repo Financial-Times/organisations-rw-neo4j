@@ -9,18 +9,17 @@ import (
 )
 
 type service struct {
-	cypherRunner neoutils.CypherRunner
-	indexManager neoutils.IndexManager
+	cypherRunner neoutils.NeoConnection
 }
 
 //NewCypherOrganisationService returns a new service responsible for writing organisations in Neo4j
-func NewCypherOrganisationService(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) service {
-	return service{cypherRunner, indexManager}
+func NewCypherOrganisationService(cypherRunner neoutils.NeoConnection) service {
+	return service{cypherRunner}
 }
 
 func (cd service) Initialise() error {
 
-	err := neoutils.EnsureIndexes(cd.indexManager,  map[string]string{
+	err := cd.cypherRunner.EnsureIndexes(map[string]string{
 		"Identifier": "value",
 	})
 
@@ -28,7 +27,7 @@ func (cd service) Initialise() error {
 		return err
 	}
 
-	return neoutils.EnsureConstraints(cd.indexManager, map[string]string{
+	return cd.cypherRunner.EnsureConstraints(map[string]string{
 		"Thing":             "uuid",
 		"Concept":           "uuid",
 		"Organisation":      "uuid",
