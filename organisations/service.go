@@ -9,7 +9,7 @@ import (
 )
 
 type service struct {
-	cypherRunner neoutils.NeoConnection
+	conn neoutils.NeoConnection
 }
 
 //NewCypherOrganisationService returns a new service responsible for writing organisations in Neo4j
@@ -19,7 +19,7 @@ func NewCypherOrganisationService(cypherRunner neoutils.NeoConnection) service {
 
 func (cd service) Initialise() error {
 
-	err := cd.cypherRunner.EnsureIndexes(map[string]string{
+	err := cd.conn.EnsureIndexes(map[string]string{
 		"Identifier": "value",
 	})
 
@@ -27,7 +27,7 @@ func (cd service) Initialise() error {
 		return err
 	}
 
-	return cd.cypherRunner.EnsureConstraints(map[string]string{
+	return cd.conn.EnsureConstraints(map[string]string{
 		"Thing":             "uuid",
 		"Concept":           "uuid",
 		"Organisation":      "uuid",
@@ -118,7 +118,7 @@ func (cd service) Write(thing interface{}) error {
 		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
-	return cd.cypherRunner.CypherBatch(queries)
+	return cd.conn.CypherBatch(queries)
 }
 
 func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []string) ([]*neoism.CypherQuery, error) {
@@ -137,7 +137,7 @@ func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID stri
 				queries = append(queries, deleteEntityRelationshipsForDeprecatedOrgNodeQuery)
 
 				// re-point the remaining relationships from previous node to the canonical/actual one
-				transferQueries, err := CreateTransferRelationshipsQueries(cd.cypherRunner, canonicalUUID, identifier)
+				transferQueries, err := CreateTransferRelationshipsQueries(cd.conn, canonicalUUID, identifier)
 				if err != nil {
 					return nil, err
 				}
@@ -171,7 +171,7 @@ func (cd service) checkNodeExistence(uuid string) (bool, error) {
 	}
 
 	readQueries := []*neoism.CypherQuery{checkNodeExistenceQuery}
-	err := cd.cypherRunner.CypherBatch(readQueries)
+	err := cd.conn.CypherBatch(readQueries)
 
 	if err != nil {
 		return false, err
@@ -241,7 +241,7 @@ func (cd service) Read(uuid string) (interface{}, bool, error) {
 		Result: &results,
 	}
 
-	if err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{readQuery}); err != nil || len(results) == 0 {
+	if err := cd.conn.CypherBatch([]*neoism.CypherQuery{readQuery}); err != nil || len(results) == 0 {
 		return organisation{}, false, err
 	}
 
@@ -312,7 +312,7 @@ func (cd service) Delete(uuid string) (bool, error) {
 		},
 	}
 
-	err := cd.cypherRunner.CypherBatch(qs)
+	err := cd.conn.CypherBatch(qs)
 
 	s1, err := clearNode.Stats()
 
@@ -328,7 +328,7 @@ func (cd service) Delete(uuid string) (bool, error) {
 }
 
 func (cd service) Check() error {
-	return neoutils.Check(cd.cypherRunner)
+	return neoutils.Check(cd.conn)
 }
 
 type countResult []struct {
@@ -339,7 +339,7 @@ func (cd service) Count() (int, error) {
 
 	results := countResult{}
 
-	err := cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{{
+	err := cd.conn.CypherBatch([]*neoism.CypherQuery{{
 		Statement: `MATCH (n:Organisation) return count(n) as c`,
 		Result:    &results,
 	}})
