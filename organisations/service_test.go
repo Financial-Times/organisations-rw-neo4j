@@ -278,7 +278,7 @@ func TestDeleteNoRelationships(t *testing.T) {
 		Result:    &result,
 	}
 
-	assert.NoError(db.Cypher(&getOrg))
+	assert.NoError(db.CypherBatch([]*neoism.CypherQuery{&getOrg}))
 	assert.Empty(result)
 }
 
