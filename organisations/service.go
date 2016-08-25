@@ -59,7 +59,9 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 func (cd service) Write(thing interface{}) error {
 
 	o := thing.(organisation)
-	props := constructOrganisationProperties(o)
+
+
+	/*props := constructOrganisationProperties(o)
 
 	deleteEntityRelationshipsQuery := constructDeleteEntityRelationshipQuery(o.UUID)
 	resetOrgQuery := constructResetOrganisationQuery(o.UUID, props)
@@ -120,6 +122,20 @@ func (cd service) Write(thing interface{}) error {
 		queries = append(queries, parentQuery)
 	}
 	return cd.cypherRunner.CypherBatch(queries)
+	*/
+
+	uuid := o.UUID
+	queryStr :=  `MERGE (t:Thing {uuid:{uuid}})
+			CREATE (i:Identifier {value:{uuid}})
+			MERGE (t)<-[:IDENTIFIES]-(i)
+			set i : UPPIdentifier`
+	query := &neoism.CypherQuery{
+		Statement: queryStr,
+		Parameters: map[string]interface{}{
+			"uuid":    uuid,
+		},
+	}
+	return cd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
 }
 
 func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []string) ([]*neoism.CypherQuery, error) {
