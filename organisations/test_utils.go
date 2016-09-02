@@ -9,31 +9,33 @@ import (
 	"testing"
 )
 
-func getDatabaseConnection(assert *assert.Assertions) *neoism.Database {
+func getDatabaseConnection(assert *assert.Assertions) neoutils.NeoConnection {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "http://localhost:7474/db/data"
 	}
 
-	db, err := neoism.Connect(url)
+	conf := neoutils.DefaultConnectionConfig()
+	conf.Transactional = false
+	db, err := neoutils.Connect(url, conf)
 	assert.NoError(err, "Failed to connect to Neo4j")
 	return db
 }
 
-func getCypherDriver(db *neoism.Database) service {
-	cr := NewCypherOrganisationService(neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 3), db)
+func getCypherDriver(db neoutils.NeoConnection) service {
+	cr := NewCypherOrganisationService(db)
 	cr.Initialise()
 	return cr
 }
 
-func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions, uuidsToClean []string) *neoism.Database {
+func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions, uuidsToClean []string) neoutils.NeoConnection {
 	db := getDatabaseConnection(assert)
 	cleanDB(db, t, assert, uuidsToClean)
 	checkDbClean(db, t, uuidsToClean)
 	return db
 }
 
-func checkDbClean(db *neoism.Database, t *testing.T, uuidsToClean []string) {
+func checkDbClean(db neoutils.CypherRunner, t *testing.T, uuidsToClean []string) {
 	assert := assert.New(t)
 
 	result := []struct {
@@ -49,12 +51,12 @@ func checkDbClean(db *neoism.Database, t *testing.T, uuidsToClean []string) {
 		},
 		Result: &result,
 	}
-	err := db.Cypher(&checkGraph)
+	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
 	assert.NoError(err)
 	assert.Empty(result)
 }
 
-func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
+func cleanDB(db neoutils.CypherRunner, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
 	qs := []*neoism.CypherQuery{}
 
 	for _, uuid := range uuidsToClean {

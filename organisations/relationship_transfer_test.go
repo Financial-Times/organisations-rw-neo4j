@@ -2,6 +2,7 @@ package organisations
 
 import (
 	"fmt"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"strings"
@@ -156,9 +157,9 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 	}
 
 	assert.NoError(cypherDriver.Write(transferOrg1))
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
+	assert.NoError(cypherDriver.conn.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
-	relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg1UUID)
+	relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, err := getNodeRelationshipNames(cypherDriver.conn, transferOrg1UUID)
 
 	assert.NoError(err)
 	assert.True(len(relationshipsFromNodeWithUUID) >= 1, "Expected -> relationship length differs from actual length")
@@ -185,24 +186,24 @@ func TestTransferRelationships(t *testing.T) {
 		},
 	}
 	assert.NoError(cypherDriver.Write(transferOrg1))
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
+	assert.NoError(cypherDriver.conn.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
 	//write new node and test that it doesn't yet have the relationships
 	assert.NoError(cypherDriver.Write(transferOrg2))
-	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg2UUID)
+	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.conn, transferOrg2UUID)
 	assert.NoError(err)
 	assert.False(contains(relationshipsFromNewNode, testRelationshipRightToLeft))
 	assert.False(contains(relationshipsToNewNode, testRelationshipRightToLeft))
 
 	//transfer relationships from the one above to the on other uuid
-	transferQuery, err := CreateTransferRelationshipsQueries(cypherDriver.cypherRunner, transferOrg2UUID, transferOrg1UUID)
+	transferQuery, err := CreateTransferRelationshipsQueries(cypherDriver.conn, transferOrg2UUID, transferOrg1UUID)
 	assert.NoError(err)
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch(transferQuery))
+	assert.NoError(cypherDriver.conn.CypherBatch(transferQuery))
 
 	//verify that the relationships has been transferred
-	relationshipsFromOldNode, relationshipsToOldNode, err := getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg1UUID)
+	relationshipsFromOldNode, relationshipsToOldNode, err := getNodeRelationshipNames(cypherDriver.conn, transferOrg1UUID)
 	assert.NoError(err)
-	relationshipsFromNewNode, relationshipsToNewNode, err = getNodeRelationshipNames(cypherDriver.cypherRunner, transferOrg2UUID)
+	relationshipsFromNewNode, relationshipsToNewNode, err = getNodeRelationshipNames(cypherDriver.conn, transferOrg2UUID)
 	assert.NoError(err)
 
 	//no relationships for the old node
@@ -228,12 +229,12 @@ func TestTransferRelationships(t *testing.T) {
 		},
 		Result: &transferredProperty,
 	}
-	assert.NoError(cypherDriver.cypherRunner.CypherBatch([]*neoism.CypherQuery{readRelationshipPropertyQuery}))
+	assert.NoError(cypherDriver.conn.CypherBatch([]*neoism.CypherQuery{readRelationshipPropertyQuery}))
 	assert.Equal(1, len(transferredProperty))
 	assert.Equal("someValue", transferredProperty[0].Value)
 }
 
-func cleanRelationshipDB(db *neoism.Database, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
+func cleanRelationshipDB(db neoutils.CypherRunner, t *testing.T, assert *assert.Assertions, uuidsToClean []string) {
 	cleanDB(db, t, assert, uuidsToClean)
 
 	qs := []*neoism.CypherQuery{
