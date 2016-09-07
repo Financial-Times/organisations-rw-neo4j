@@ -14,19 +14,18 @@ const (
 
 // CypherDriver - CypherDriver
 type CypherDriver struct {
-	cypherRunner neoutils.CypherRunner
-	indexManager neoutils.IndexManager
+	conn neoutils.NeoConnection
 }
 
 //NewCypherDriver instantiate driver
-func NewCypherDriver(cypherRunner neoutils.CypherRunner, indexManager neoutils.IndexManager) CypherDriver {
-	return CypherDriver{cypherRunner, indexManager}
+func NewCypherDriver(cypherRunner neoutils.NeoConnection) CypherDriver {
+	return CypherDriver{cypherRunner}
 }
 
 //Initialise initialisation of the indexes
 func (pcd CypherDriver) Initialise() error {
 
-	err := neoutils.EnsureIndexes(pcd.indexManager,  map[string]string{
+	err := pcd.conn.EnsureIndexes(map[string]string{
 		"Identifier": "value",
 	})
 
@@ -34,7 +33,7 @@ func (pcd CypherDriver) Initialise() error {
 		return err
 	}
 
-	return neoutils.EnsureConstraints(pcd.indexManager, map[string]string{
+	return pcd.conn.EnsureConstraints(map[string]string{
 		"Role":              "uuid",
 		"FactsetIdentifier": "value",
 		"UPPIdentifier":     "value"})
@@ -42,7 +41,7 @@ func (pcd CypherDriver) Initialise() error {
 
 // Check - Feeds into the Healthcheck and checks whether we can connect to Neo and that the datastore isn't empty
 func (pcd CypherDriver) Check() error {
-	return neoutils.Check(pcd.cypherRunner)
+	return neoutils.Check(pcd.conn)
 }
 
 // Read - reads a role given a UUID
@@ -70,7 +69,7 @@ func (pcd CypherDriver) Read(uuid string) (interface{}, bool, error) {
 		Result: &results,
 	}
 
-	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
+	err := pcd.conn.CypherBatch([]*neoism.CypherQuery{query})
 
 	if err != nil {
 		return role{}, false, err
@@ -148,7 +147,7 @@ func (pcd CypherDriver) Write(thing interface{}) error {
 		queryBatch = append(queryBatch, createNewIdentifierQuery(roleToWrite.UUID, factsetIdentifierLabel, roleToWrite.AlternativeIdentifiers.FactsetIdentifier))
 	}
 
-	return pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery(queryBatch))
+	return pcd.conn.CypherBatch([]*neoism.CypherQuery(queryBatch))
 }
 
 func createNewIdentifierQuery(uuid string, identifierLabel string, identifierValue string) *neoism.CypherQuery {
@@ -196,7 +195,7 @@ func (pcd CypherDriver) Delete(uuid string) (bool, error) {
 		},
 	}
 
-	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{clearNode, removeNodeIfUnused})
+	err := pcd.conn.CypherBatch([]*neoism.CypherQuery{clearNode, removeNodeIfUnused})
 
 	s1, err := clearNode.Stats()
 	if err != nil {
@@ -231,7 +230,7 @@ func (pcd CypherDriver) Count() (int, error) {
 		Result:    &results,
 	}
 
-	err := pcd.cypherRunner.CypherBatch([]*neoism.CypherQuery{query})
+	err := pcd.conn.CypherBatch([]*neoism.CypherQuery{query})
 
 	if err != nil {
 		return 0, err
