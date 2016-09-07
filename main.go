@@ -11,8 +11,6 @@ import (
 	"github.com/Financial-Times/roles-rw-neo4j/roles"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
-	"github.com/jmcvetta/neoism"
-	"net/http"
 )
 
 func main() {
@@ -60,14 +58,14 @@ func main() {
 	})
 
 	app.Action = func() {
-		db, err := neoism.Connect(*neoURL)
-		db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
+		conf := neoutils.DefaultConnectionConfig()
+		conf.BatchSize = *batchSize
+		db, err := neoutils.Connect(*neoURL, conf)
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
 		}
 
-		batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, *batchSize)
-		rolesDriver := roles.NewCypherDriver(batchRunner, db)
+		rolesDriver := roles.NewCypherDriver(db)
 		rolesDriver.Initialise()
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
@@ -78,7 +76,7 @@ func main() {
 
 		var checks []v1a.Check
 		for _, service := range services {
-			checks = append(checks, makeCheck(service, batchRunner))
+			checks = append(checks, makeCheck(service, db))
 		}
 
 		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
