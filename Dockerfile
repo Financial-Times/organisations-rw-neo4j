@@ -22,9 +22,9 @@ RUN apk add --update bash \
   && cd $GOPATH/src/${REPO_PATH} \
   && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
-  && mv organisations-rw-neo4j /app \
+  && mv organisations-rw-neo4j / \
   && apk del go git \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD [ "/app" ]
+CMD [ "/organisations-rw-neo4j" ]
 
