@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.4
 ADD *.go .git /organisations-rw-neo4j/
 ADD organisations/*.go /organisations-rw-neo4j/organisations/
 RUN apk add --update bash \
