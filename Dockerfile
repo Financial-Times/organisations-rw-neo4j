@@ -14,9 +14,10 @@ RUN apk add --update bash \
   && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
   && cd .. \
   && export GOPATH=/gopath \
-  && REPO_PATH="github.com/Financial-Times/organisations-rw-neo4j" \
-  && mkdir -p $GOPATH/src/${REPO_PATH} \
-  && cp -r organisations-rw-neo4j/* $GOPATH/src/${REPO_PATH} \
+  && REPO_ROOT="github.com/Financial-Times/" \
+  && REPO_PATH="$REPO_ROOT/organisations-rw-neo4j" \
+  && mkdir -p $GOPATH/src/${REPO_ROOT} \
+  && mv organisations-rw-neo4j $GOPATH/src/${REPO_ROOT} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get ./... \
   && cd $GOPATH/src/${REPO_PATH} \
