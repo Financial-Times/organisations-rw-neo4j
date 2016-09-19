@@ -59,6 +59,7 @@ func main() {
 	app.Action = func() {
 		conf := neoutils.DefaultConnectionConfig()
 		conf.BatchSize = *batchSize
+		conf.BackgroundConnect = true
 		db, err := neoutils.Connect(*neoURL, conf)
 		if err != nil {
 			log.Errorf("Could not connect to neo4j, error=[%s]\n", err)
