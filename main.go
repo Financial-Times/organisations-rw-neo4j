@@ -59,7 +59,6 @@ func main() {
 	app.Action = func() {
 		conf := neoutils.DefaultConnectionConfig()
 		conf.BatchSize = *batchSize
-		conf.ApplicationId = "organisations-rw-neo4j"
 		conf.BackgroundConnect = true
 		db, err := neoutils.Connect(*neoURL, conf)
 		if err != nil {
