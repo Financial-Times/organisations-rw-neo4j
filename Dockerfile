@@ -1,9 +1,13 @@
-FROM alpine:3.3
-ADD *.go .git /roles-rw-neo4j/
-ADD roles/*.go /roles-rw-neo4j/roles/
+FROM alpine:3.4
+
+ARG PROJECT=roles-rw-neo4j
+
+ADD *.go .git /${PROJECT}/
+ADD roles/*.go /${PROJECT}/roles/
+
 RUN apk add --update bash \
   && apk --update add git go \
-  && cd roles-rw-neo4j \
+  && cd ${PROJECT} \
   && git fetch origin 'refs/tags/*:refs/tags/*' \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
@@ -14,17 +18,17 @@ RUN apk add --update bash \
   && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
   && cd .. \
   && export GOPATH=/gopath \
-  && REPO_PATH="github.com/Financial-Times/roles-rw-neo4j" \
-  && mkdir -p $GOPATH/src/${REPO_PATH} \
-  && cp -r roles-rw-neo4j/* $GOPATH/src/${REPO_PATH} \
+  && REPO_ROOT="github.com/Financial-Times/" \
+  && REPO_PATH="$REPO_ROOT/${PROJECT}" \
+  && mkdir -p $GOPATH/src/${REPO_ROOT} \
+  && mv ${PROJECT} $GOPATH/src/${REPO_ROOT} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get ./... \
   && cd $GOPATH/src/${REPO_PATH} \
   && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
-  && mv roles-rw-neo4j /app \
+  && mv ${PROJECT} / \
   && apk del go git \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD [ "/app" ]
-
+CMD [ "/${PROJECT}" ]
