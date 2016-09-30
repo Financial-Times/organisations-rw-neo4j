@@ -2,7 +2,7 @@ package organisations
 
 import (
 	"fmt"
-	"github.com/Financial-Times/neo-utils-go/neoutils"
+	"github.com/Financial-Times/up-rw-app-api-go/rwapi"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"reflect"
@@ -312,7 +312,7 @@ func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T)
 	assert.NoError(cypherDriver.Write(fullOrg))
 	err := cypherDriver.Write(dupeOtherIdentifierOrg)
 	assert.Error(err)
-	assert.IsType(&neoutils.ConstraintViolationError{}, err)
+	assert.IsType(rwapi.ConstraintOrTransactionError{}, err)
 }
 
 func TestCount(t *testing.T) {
