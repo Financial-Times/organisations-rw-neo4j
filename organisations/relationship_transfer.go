@@ -75,7 +75,7 @@ func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string,
 					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s{platformVersion:oldRel.platformVersion}]->(p)
 					on create SET newRel = oldRel
-					DELETE oldRel`, predicate, predicate, predicate),
+					DELETE oldRel`, predicate, predicate),
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
@@ -92,7 +92,7 @@ func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID 
 					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s]->(p)
 					on create SET newRel = oldRel
-					DELETE oldRel`, predicate, predicate, predicate),
+					DELETE oldRel`, predicate, predicate),
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
@@ -109,7 +109,7 @@ func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, p
 					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s{platformVersion:oldRel.platformVersion}]-(p)
 					ON create SET newRel = oldRel
-					DELETE oldRel`, predicate, predicate, predicate),
+					DELETE oldRel`, predicate, predicate),
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
@@ -126,7 +126,7 @@ func constructTransferRelationshipsToNodeQueryWithoutPlatformVersion(fromUUID st
 					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s]-(p)
 					ON CREATE SET newRel = oldRel
-					DELETE oldRel`, predicate, predicate, predicate),
+					DELETE oldRel`, predicate, predicate),
 
 		Parameters: map[string]interface{}{
 			"fromUUID": fromUUID,
