@@ -72,7 +72,7 @@ func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string,
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
 					WHERE EXISTS(oldRel.platformVersion)
-					MATCH (newNode:Thing {uuid:{toUUID}})
+					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s{platformVersion:oldRel.platformVersion}]->(p)
 					on create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -89,7 +89,7 @@ func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID 
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
 					WHERE NOT EXISTS(oldRel.platformVersion)
-					MATCH (newNode:Thing {uuid:{toUUID}})
+					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s]->(p)
 					on create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -106,7 +106,7 @@ func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, p
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
 					WHERE EXISTS(oldRel.platformVersion)
-					MATCH (newNode:Thing {uuid:{toUUID}})
+					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s{platformVersion:oldRel.platformVersion}]-(p)
 					ON create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -123,7 +123,7 @@ func constructTransferRelationshipsToNodeQueryWithoutPlatformVersion(fromUUID st
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
 					WHERE not EXISTS(oldRel.platformVersion)
-					MATCH (newNode:Thing {uuid:{toUUID}})
+					MATCH (newNode:Organisation {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s]-(p)
 					ON CREATE SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
