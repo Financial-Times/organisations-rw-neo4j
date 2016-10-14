@@ -65,6 +65,22 @@ func (cd service) Write(thing interface{}) error {
 
 	queries := []*neoism.CypherQuery{deleteEntityRelationshipsQuery, resetOrgQuery}
 
+	//add type
+	err, stringType := o.Type.String()
+	if err == nil {
+		setTypeStatement := fmt.Sprintf(`MERGE (o:Thing {uuid: {uuid}})  set o : %s `, stringType)
+		setTypeQuery := &neoism.CypherQuery{
+			Statement: setTypeStatement,
+			Parameters: map[string]interface{}{
+				"uuid": o.UUID,
+			},
+		}
+		queries = append(queries, setTypeQuery)
+
+	} else {
+		return err
+	}
+
 	mergingQueriesForOldNodes, err := cd.constructMergingOldOrganisationNodesQueries(o.UUID, o.AlternativeIdentifiers.UUIDS)
 	if err != nil {
 		return err
@@ -91,22 +107,6 @@ func (cd service) Write(thing interface{}) error {
 
 	if o.AlternativeIdentifiers.LeiCode != "" {
 		queries = append(queries, createNewIdentifierQuery(o.UUID, leiIdentifierLabel, o.AlternativeIdentifiers.LeiCode))
-	}
-
-	//add type
-	err, stringType := o.Type.String()
-	if err == nil {
-		setTypeStatement := fmt.Sprintf(`MERGE (o:Thing {uuid: {uuid}})  set o : %s `, stringType)
-		setTypeQuery := &neoism.CypherQuery{
-			Statement: setTypeStatement,
-			Parameters: map[string]interface{}{
-				"uuid": o.UUID,
-			},
-		}
-		queries = append(queries, setTypeQuery)
-
-	} else {
-		return err
 	}
 
 	if o.IndustryClassification != "" {

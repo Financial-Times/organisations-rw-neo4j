@@ -71,8 +71,8 @@ func getNodeRelationshipNames(cypherRunner neoutils.CypherRunner, uuid string) (
 func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
-					WHERE HAS(oldRel.platformVersion)
-					MATCH (newNode:Organisation {uuid:{toUUID}})
+					WHERE EXISTS(oldRel.platformVersion)
+					MATCH (newNode:Thing {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s{platformVersion:oldRel.platformVersion}]->(p)
 					on create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -88,8 +88,8 @@ func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string,
 func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
-					WHERE NOT HAS(oldRel.platformVersion)
-					MATCH (newNode:Organisation {uuid:{toUUID}})
+					WHERE NOT EXISTS(oldRel.platformVersion)
+					MATCH (newNode:Thing {uuid:{toUUID}})
 					MERGE (newNode)-[newRel:%s]->(p)
 					on create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -105,8 +105,8 @@ func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID 
 func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
-					WHERE HAS(oldRel.platformVersion)
-					MATCH (newNode:Organisation {uuid:{toUUID}})
+					WHERE EXISTS(oldRel.platformVersion)
+					MATCH (newNode:Thing {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s{platformVersion:oldRel.platformVersion}]-(p)
 					ON create SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
@@ -122,8 +122,8 @@ func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, p
 func constructTransferRelationshipsToNodeQueryWithoutPlatformVersion(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
-					WHERE not HAS(oldRel.platformVersion)
-					MATCH (newNode:Organisation {uuid:{toUUID}})
+					WHERE not EXISTS(oldRel.platformVersion)
+					MATCH (newNode:Thing {uuid:{toUUID}})
 					MERGE (newNode)<-[newRel:%s]-(p)
 					ON CREATE SET newRel = oldRel
 					DELETE oldRel`, predicate, predicate),
