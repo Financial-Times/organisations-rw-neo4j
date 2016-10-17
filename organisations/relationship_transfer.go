@@ -20,14 +20,14 @@ func CreateTransferRelationshipsQueries(cypherRunner neoutils.CypherRunner, dest
 
 	writeQueries := []*neoism.CypherQuery{}
 	for _, rel := range relationshipsFromSourceNode {
-		transfQuery := constructTransferRelationshipsFromNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
-		transfQuery2 := constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(sourceUUID, destinationUUID, rel.RelationshipType)
+		transfQuery := constructTransferRelationshipsWithPlatformVersionFromNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
+		transfQuery2 := constructTransferRelationshipsFromNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
 		writeQueries = append(writeQueries, transfQuery, transfQuery2)
 	}
 
 	for _, rel := range relationshipsToSourceNode {
-		transfQuery := constructTransferRelationshipsToNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
-		transfQuery2 := constructTransferRelationshipsToNodeQueryWithoutPlatformVersion(sourceUUID, destinationUUID, rel.RelationshipType)
+		transfQuery := constructTransferRelationshipsWithPlatformVersionToNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
+		transfQuery2 := constructTransferRelationshipsToNodeQuery(sourceUUID, destinationUUID, rel.RelationshipType)
 		writeQueries = append(writeQueries, transfQuery, transfQuery2)
 	}
 
@@ -68,7 +68,7 @@ func getNodeRelationshipNames(cypherRunner neoutils.CypherRunner, uuid string) (
 	return relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, nil
 }
 
-func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
+func constructTransferRelationshipsWithPlatformVersionFromNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
 					WHERE EXISTS(oldRel.platformVersion)
@@ -85,7 +85,7 @@ func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string,
 	return transferAnnotationsQuery
 }
 
-func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
+func constructTransferRelationshipsFromNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})-[oldRel:%s]->(p)
 					WHERE NOT EXISTS(oldRel.platformVersion)
@@ -102,7 +102,7 @@ func constructTransferRelationshipsFromNodeQueryWithoutPlatformVersion(fromUUID 
 	return transferAnnotationsQuery
 }
 
-func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
+func constructTransferRelationshipsWithPlatformVersionToNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
 					WHERE EXISTS(oldRel.platformVersion)
@@ -119,7 +119,7 @@ func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, p
 	return transferAnnotationsQuery
 }
 
-func constructTransferRelationshipsToNodeQueryWithoutPlatformVersion(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
+func constructTransferRelationshipsToNodeQuery(fromUUID string, toUUID string, predicate string) *neoism.CypherQuery {
 	transferAnnotationsQuery := &neoism.CypherQuery{
 		Statement: fmt.Sprintf(`MATCH (oldNode:Organisation {uuid:{fromUUID}})<-[oldRel:%s]-(p)
 					WHERE not EXISTS(oldRel.platformVersion)
