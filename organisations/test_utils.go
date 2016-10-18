@@ -68,16 +68,6 @@ func cleanDB(db neoutils.CypherRunner, t *testing.T, assert *assert.Assertions, 
 	assert.NoError(err)
 }
 
-func containsNumberOf(rels relationships, rel string) int {
-	nr := 0
-	for _, foundRel := range rels {
-		if foundRel.RelationshipType == rel {
-			nr = nr + 1
-		}
-	}
-	return nr
-}
-
 func contains(rels relationships, rel string) bool {
 	for _, foundRel := range rels {
 		if foundRel.RelationshipType == rel {
