@@ -66,7 +66,7 @@ func constructCreateParentOrganisationQuery(uuid string, parentUUID string) *neo
 	return &neoism.CypherQuery{
 		Statement: `MERGE (o:Thing {uuid: {uuid}})
 		  	    MERGE (parentupp:Identifier:UPPIdentifier{value:{paUuid}})
-                            MERGE (parentupp)-[:IDENTIFIES]->(p:Thing) ON CREATE SET p.uuid = {paUuid}
+                            MERGE (parentupp)-[:IDENTIFIES]->(p:Organisation:Thing) ON CREATE SET p.uuid = {paUuid}
 		            MERGE (o)-[:SUB_ORGANISATION_OF]->(p)`,
 		Parameters: map[string]interface{}{
 			"uuid":   uuid,
