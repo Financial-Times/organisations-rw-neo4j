@@ -1,4 +1,7 @@
 # Organisations Reader/Writer for Neo4j (organisations-rw-neo4j)
+[![Circle CI](https://circleci.com/gh/Financial-Times/organisations-rw-neo4j.svg?style=svg)](https://circleci.com/gh/Financial-Times/organisations-rw-neo4j)
+[![Coverage Status](https://coveralls.io/repos/github/Financial-Times/organisations-rw-neo4j/badge.svg)](https://coveralls.io/github/Financial-Times/organisations-rw-neo4j)
+[![codecov.io](https://codecov.io/github/Financial-Times/organisations-rw-neo4j/coverage.svg?branch=Add_coveralls)](https://codecov.io/github/Financial-Times/organisations-rw-neo4j?branch=Add_coveralls)
 
 __An API for reading/writing organisations into Neo4j. Expects the organisations json supplied to be in the format that comes out of the organisations transformer.__
 
