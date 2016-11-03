@@ -10,11 +10,14 @@ dependencies:
     - sleep 10
 test:
   override:
-    - go test -v -race -coverprofile=coverage.txt -covermode=atomic github.com/Financial-Times/organisations-rw-neo4j/organisations 
+    - go test -v -cover -race -coverprofile=coverage.txt -covermode=atomic github.com/Financial-Times/organisations-rw-neo4j/organisations 
   pre:
     - 'curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d ''{"password":"x"}''  http://localhost:7474/user/neo4j/password'
+    - go get golang.org/x/tools/cmd/cover
+    - go get github.com/mattn/goveralls
   post:
     - chmod +x bump_n_tag.sh
     - git config --global user.email "Semantic.Metadata.Development@ft.com"
     - git config --global user.name "CicleCi"
     - bash <(curl -s https://codecov.io/bash)
+    - goveralls -coverprofile=coverage.txt -service=circle-ci -repotoken=$COVERALLS_TOKEN
