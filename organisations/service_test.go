@@ -2,6 +2,7 @@ package organisations
 
 import (
 	"fmt"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/up-rw-app-api-go/rwapi"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
@@ -240,24 +241,7 @@ func TestDeleteNothing(t *testing.T) {
 	assert.False(res)
 }
 
-func TestDeleteWithRelationships(t *testing.T) {
-	assert := assert.New(t)
-
-	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
-	cypherDriver := getCypherDriver(db)
-	defer cleanDB(db, t, assert, uuidsToClean)
-
-	assert.Nil(cypherDriver.Write(fullOrg))
-	found, err := cypherDriver.Delete(fullOrgUUID)
-	assert.True(found)
-
-	storedOrg, _, err := cypherDriver.Read(fullOrgUUID)
-
-	assert.NoError(err)
-	assert.NotEmpty(storedOrg)
-}
-
-func TestDeleteNoRelationships(t *testing.T) {
+func TestDeleteWillRemoveNodeAndAllAssociatedIfNoExtraRelationships(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
@@ -265,21 +249,38 @@ func TestDeleteNoRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert, uuidsToClean)
 
 	assert.Nil(cypherDriver.Write(minimalOrg))
+
 	found, err := cypherDriver.Delete(minimalOrgUUID)
 	assert.NoError(err)
 	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUUID)
 
-	result := []struct {
-		UUID string `json:"t.uuid"`
-	}{}
+	o, found, err := cypherDriver.Read(minimalOrgUUID)
 
-	getOrg := neoism.CypherQuery{
-		Statement: fmt.Sprintf("MATCH (t:Thing {uuid:'%v'}) RETURN t.uuid", minimalOrgUUID),
-		Result:    &result,
-	}
+	assert.Equal(organisation{}, o, "Found organisation %v which should have been deleted", o)
+	assert.False(found, "Found organisation for uuid %v which should have been deleted", minimalOrgUUID)
+	assert.NoError(err, "Error trying to find organisation for uuid %v", minimalOrgUUID)
+	assert.Equal(false, doesThingExistAtAll(minimalOrgUUID, db, t, assert), "Found thing which should have been deleted with uuid %v", minimalOrgUUID)
+}
 
-	assert.NoError(db.CypherBatch([]*neoism.CypherQuery{&getOrg}))
-	assert.Empty(result)
+func TestDeleteWillMaintainExternalRelationshipsOnThingNodeIfRelationshipsExist(t *testing.T) {
+	assert := assert.New(t)
+
+	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
+	cypherDriver := getCypherDriver(db)
+	defer cleanDB(db, t, assert, uuidsToClean)
+
+	//writes org and relationship to a parent and industry(which count as external relationships)
+	assert.Nil(cypherDriver.Write(fullOrg))
+	found, err := cypherDriver.Delete(fullOrgUUID)
+	assert.True(found, "Didnt manage to delete organisation for uuid %v", fullOrgUUID)
+	assert.NoError(err, "Error deleting organisation for uuid %v", fullOrgUUID)
+
+	o, found, err := cypherDriver.Read(fullOrgUUID)
+
+	assert.Equal(organisation{}, o, "Found organisation %v which should have been deleted", o)
+	assert.False(found, "Found organisation for uuid %v which should have been deleted", fullOrgUUID)
+	assert.NoError(err, "Error trying to find organisation for uuid %v", fullOrgUUID)
+	assert.Equal(true, doesThingExistWithIdentifiers(fullOrgUUID, db, t, assert), "Found no trace of organisation which had relationships and thus should still exist as a thing %v", fullOrgUUID)
 }
 
 // Temporary solution, until the organisation lifecycle will be correctly managed.
@@ -302,7 +303,7 @@ func TestToCheckYouCanCreateOrganisationWithDuplicateLeiIdentifier(t *testing.T)
 	assert.True(found, "Didn't find organisation for uuid %s", dupeLeiIdentifierOrgUUID)
 }
 
-// The uniqueness constraint is valid for tme, factset and upp identifiers
+// The uniqueness constraint is valid for tme, factset and upp identifiers/*
 func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T) {
 	assert := assert.New(t)
 
@@ -328,4 +329,57 @@ func TestCount(t *testing.T) {
 	count, err := cypherDriver.Count()
 	assert.NoError(err)
 	assert.Equal(2, count)
+}
+
+func doesThingExistAtAll(uuid string, db neoutils.NeoConnection, t *testing.T, assert *assert.Assertions) bool {
+	result := []struct {
+		Uuid string `json:"thing.uuid"`
+	}{}
+
+	checkGraph := neoism.CypherQuery{
+		Statement: `
+			MATCH (a:Thing {uuid: "%s"}) return a.uuid
+		`,
+		Parameters: neoism.Props{
+			"uuid": uuid,
+		},
+		Result: &result,
+	}
+
+	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
+	assert.NoError(err)
+
+	if len(result) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func doesThingExistWithIdentifiers(uuid string, db neoutils.NeoConnection, t *testing.T, assert *assert.Assertions) bool {
+
+	result := []struct {
+		uuid string `json:"thing.uuid"`
+	}{}
+
+	checkGraph := neoism.CypherQuery{
+		Statement: `
+			MATCH (a:Thing {uuid: "%s"})-[:IDENTIFIES]-(:Identifier)
+			WITH collect(distinct a.uuid) as uuid
+			RETURN uuid
+		`,
+		Parameters: neoism.Props{
+			"uuid": uuid,
+		},
+		Result: &result,
+	}
+
+	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
+	assert.NoError(err)
+
+	if len(result) == 0 {
+		return false
+	}
+
+	return true
 }
