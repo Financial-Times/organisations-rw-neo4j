@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 	tmeIdentifierAnother       = "tmeIdentifierAnother"
 )
 
-var uuidsToClean = []string{fullOrgUUID, privateOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID, industryClassificationUUID, parentOrgUUID}
+var uuidsToClean = []string{fullOrgUUID, privateOrgUUID, minimalOrgUUID, oddCharOrgUUID, dupeLeiIdentifierOrgUUID, dupeOtherIdentifierOrgUUID, industryClassificationUUID, parentOrgUUID, contentUUID}
 
 var fullOrg = organisation{
 	UUID: fullOrgUUID,
@@ -248,18 +249,18 @@ func TestDeleteWillRemoveNodeAndAllAssociatedIfNoExtraRelationships(t *testing.T
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.Nil(cypherDriver.Write(minimalOrg))
+	assert.Nil(cypherDriver.Write(fullOrg))
 
-	found, err := cypherDriver.Delete(minimalOrgUUID)
+	found, err := cypherDriver.Delete(fullOrgUUID)
 	assert.NoError(err)
-	assert.True(found, "Didn't find organisation for uuid %s", minimalOrgUUID)
+	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
 
-	o, found, err := cypherDriver.Read(minimalOrgUUID)
+	o, found, err := cypherDriver.Read(fullOrgUUID)
 
 	assert.Equal(organisation{}, o, "Found organisation %v which should have been deleted", o)
-	assert.False(found, "Found organisation for uuid %v which should have been deleted", minimalOrgUUID)
-	assert.NoError(err, "Error trying to find organisation for uuid %v", minimalOrgUUID)
-	assert.Equal(false, doesThingExistAtAll(minimalOrgUUID, db, t, assert), "Found thing which should have been deleted with uuid %v", minimalOrgUUID)
+	assert.False(found, "Found organisation for uuid %v which should have been deleted", fullOrgUUID)
+	assert.NoError(err, "Error trying to find organisation for uuid %v", fullOrgUUID)
+	assert.Equal(false, doesThingExistAtAll(fullOrgUUID, db, t, assert), "Found thing which should have been deleted with uuid %v", fullOrgUUID)
 }
 
 func TestDeleteWillMaintainExternalRelationshipsOnThingNodeIfRelationshipsExist(t *testing.T) {
@@ -269,8 +270,11 @@ func TestDeleteWillMaintainExternalRelationshipsOnThingNodeIfRelationshipsExist(
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	//writes org and relationship to a parent and industry(which count as external relationships)
 	assert.Nil(cypherDriver.Write(fullOrg))
+
+	//add external relationship(one not maintained by this service)
+	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2")
+	writeJSONToService(v2AnnotationsRW, "./test-resources/singleAnnotationForFullOrg.json", contentUUID, assert)
 	found, err := cypherDriver.Delete(fullOrgUUID)
 	assert.True(found, "Didnt manage to delete organisation for uuid %v", fullOrgUUID)
 	assert.NoError(err, "Error deleting organisation for uuid %v", fullOrgUUID)
@@ -338,7 +342,7 @@ func doesThingExistAtAll(uuid string, db neoutils.NeoConnection, t *testing.T, a
 
 	checkGraph := neoism.CypherQuery{
 		Statement: `
-			MATCH (a:Thing {uuid: "%s"}) return a.uuid
+			MATCH (a:Thing {uuid: "%v"}) return a.uuid
 		`,
 		Parameters: neoism.Props{
 			"uuid": uuid,
@@ -348,6 +352,7 @@ func doesThingExistAtAll(uuid string, db neoutils.NeoConnection, t *testing.T, a
 
 	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
 	assert.NoError(err)
+	assert.Empty(result)
 
 	if len(result) == 0 {
 		return false
@@ -359,23 +364,23 @@ func doesThingExistAtAll(uuid string, db neoutils.NeoConnection, t *testing.T, a
 func doesThingExistWithIdentifiers(uuid string, db neoutils.NeoConnection, t *testing.T, assert *assert.Assertions) bool {
 
 	result := []struct {
-		uuid string `json:"thing.uuid"`
+		UUID string `json:"UUID"`
 	}{}
 
 	checkGraph := neoism.CypherQuery{
 		Statement: `
-			MATCH (a:Thing {uuid: "%s"})-[:IDENTIFIES]-(:Identifier)
-			WITH collect(distinct a.uuid) as uuid
-			RETURN uuid
+			MATCH (a:Thing {uuid: {Uuid}})-[:IDENTIFIES]-(:Identifier)
+			RETURN distinct a.uuid as UUID
 		`,
 		Parameters: neoism.Props{
-			"uuid": uuid,
+			"Uuid": uuid,
 		},
 		Result: &result,
 	}
 
 	err := db.CypherBatch([]*neoism.CypherQuery{&checkGraph})
 	assert.NoError(err)
+	assert.NotEmpty(result)
 
 	if len(result) == 0 {
 		return false
