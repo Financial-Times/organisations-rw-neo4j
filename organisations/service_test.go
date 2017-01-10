@@ -372,7 +372,7 @@ func doesThingExistWithIdentifiers(uuid string, db neoutils.NeoConnection, t *te
 			MATCH (a:Thing {uuid: {Uuid}})-[:IDENTIFIES]-(:Identifier)
 			RETURN distinct a.uuid as UUID
 		`,
-		Parameters: map[string]interface{}{
+		Parameters: neoism.Props{
 			"Uuid": uuid,
 		},
 		Result: &result,
