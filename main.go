@@ -88,7 +88,7 @@ func main() {
 		})
 	}
 	log.SetLevel(log.InfoLevel)
-	log.Printf("Application started with args %v", os.Args)
+	log.Infof("Application started with args %v", os.Args)
 
 	app.Run(os.Args)
 }
