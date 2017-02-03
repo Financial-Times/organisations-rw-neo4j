@@ -2,11 +2,12 @@ package organisations
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func getDatabaseConnection(assert *assert.Assertions) neoutils.NeoConnection {

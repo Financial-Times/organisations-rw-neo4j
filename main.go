@@ -55,6 +55,12 @@ func main() {
 		Value: "local",
 		Desc:  "environment this app is running in",
 	})
+	logLevel := app.String(cli.StringOpt{
+		Name:   "logLevel",
+		Value:  "info",
+		Desc:   "Log level of the writer.",
+		EnvVar: "LOG_LEVEL",
+	})
 
 	app.Action = func() {
 		conf := neoutils.DefaultConnectionConfig()
@@ -87,7 +93,13 @@ func main() {
 			EnableReqLog:  false,
 		})
 	}
-	log.SetLevel(log.InfoLevel)
+	switch logLevel {
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+
 	log.Infof("Application started with args %v", os.Args)
 
 	app.Run(os.Args)

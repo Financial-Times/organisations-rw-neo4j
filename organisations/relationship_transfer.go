@@ -2,6 +2,7 @@ package organisations
 
 import (
 	"fmt"
+
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
 )

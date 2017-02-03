@@ -2,13 +2,14 @@ package organisations
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
+	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/up-rw-app-api-go/rwapi"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
-	"github.com/Financial-Times/annotations-rw-neo4j/annotations"
 )
 
 const (

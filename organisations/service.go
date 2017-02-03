@@ -3,18 +3,22 @@ package organisations
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/neo-utils-go/neoutils"
-	"github.com/jmcvetta/neoism"
 	"sort"
+	"time"
+
+	"github.com/Financial-Times/neo-utils-go/neoutils"
+	log "github.com/Sirupsen/logrus"
+	"github.com/jmcvetta/neoism"
 )
 
 type service struct {
-	conn neoutils.NeoConnection
+	conn       neoutils.NeoConnection
+	writeCount int
 }
 
 //NewCypherOrganisationService returns a new service responsible for writing organisations in Neo4j
 func NewCypherOrganisationService(cypherRunner neoutils.NeoConnection) service {
-	return service{cypherRunner}
+	return service{cypherRunner, 0}
 }
 
 func (cd service) Initialise() error {
@@ -118,7 +122,11 @@ func (cd service) Write(thing interface{}) error {
 		parentQuery := constructCreateParentOrganisationQuery(o.UUID, o.ParentOrganisation)
 		queries = append(queries, parentQuery)
 	}
-	return cd.conn.CypherBatch(queries)
+	err = cd.conn.CypherBatch(queries)
+	if err == nil {
+		cd.writeCount += 1
+		log.Debugf("Write count: %v, timestamp: %v", cd.writeCount, time.Now().Format("15:04:05.000"))
+	}
 }
 
 func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []string) ([]*neoism.CypherQuery, error) {
