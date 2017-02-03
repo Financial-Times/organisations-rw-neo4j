@@ -127,6 +127,7 @@ func (cd service) Write(thing interface{}) error {
 		cd.writeCount += 1
 		log.Debugf("Write count: %v, timestamp: %v", cd.writeCount, time.Now().Format("15:04:05.000"))
 	}
+	return err
 }
 
 func (cd service) constructMergingOldOrganisationNodesQueries(canonicalUUID string, possibleOldNodes []string) ([]*neoism.CypherQuery, error) {

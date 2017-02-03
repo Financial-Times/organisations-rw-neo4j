@@ -93,7 +93,7 @@ func main() {
 			EnableReqLog:  false,
 		})
 	}
-	switch logLevel {
+	switch *logLevel {
 	case "debug":
 		log.SetLevel(log.DebugLevel)
 	default:
