@@ -154,11 +154,11 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	//STEP 2: write relationships
 
 	//write V2 mentions, and about annotation for org2UUID, write V2 mentions annotation for org8UUID
-	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2")
+	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2", "v2-annotation")
 	writeJSONToService(v2AnnotationsRW, "./test-resources/annotationBodyForOrg2AndOrg8.json", contentUUID, assert)
 
 	//write V1 mentions annotation for org1UUID and org9UUID - considered as major mentions
-	v1AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1")
+	v1AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1", "v1-annotation")
 	writeJSONToService(v1AnnotationsRW, "./test-resources/annotationBodyForOrg1AndOrg9.json", contentUUID, assert)
 
 	//STEP3: concorde org1, with org2 and org9
@@ -343,7 +343,7 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	db := getDatabaseConnectionAndCheckClean(t, assert, concordedUUIDs)
 	cypherDriver := getCypherDriver(db)
 
-	annotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1")
+	annotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1", "v1-annotation")
 
 	defer cleanDB(db, t, assert, concordedUUIDs)
 	defer deleteAllViaService(db, assert, annotationsRW)
