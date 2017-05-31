@@ -1,0 +1,18 @@
+version: '2'
+services:
+  organisations-rw-neo4j:
+    build: .
+    depends_on:
+      - ft-neo4j
+    environment:
+      NEO_URL: http://ft-neo4j:7474/db/data
+    ports:
+      - "8080:8080"
+
+  ft-neo4j:
+    image: coco/ft-neo4j:2.3.6-2
+    environment:
+      NEO4J_AUTH: none
+    ports:
+      - "7474:7474"
+      - "7473:7473"

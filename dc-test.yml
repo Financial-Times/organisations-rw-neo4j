@@ -1,0 +1,15 @@
+version: '2.1'
+services:
+  ft-neo4j:
+    container_name: neo4j
+    image: coco/ft-neo4j:2.3.6-2
+    environment:
+      NEO4J_AUTH: none
+    ports:
+      - "7474:7474"
+      - "7473:7473"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7474/browser && echo 'Neo4j now running'"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
