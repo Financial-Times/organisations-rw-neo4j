@@ -59,7 +59,7 @@ func TestGetNodeRelationshipNames(t *testing.T) {
 		},
 	}
 
-	assert.NoError(cypherDriver.Write(transferOrg1))
+	assert.NoError(cypherDriver.Write(transferOrg1, "TEST_TRANS_ID"))
 	assert.NoError(cypherDriver.conn.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
 	relationshipsFromNodeWithUUID, relationshipsToNodeWithUUID, err := getNodeRelationshipNames(cypherDriver.conn, transferOrg1UUID)
@@ -88,11 +88,11 @@ func TestTransferRelationships(t *testing.T) {
 			"uuid":  transferOrg1UUID,
 		},
 	}
-	assert.NoError(cypherDriver.Write(transferOrg1))
+	assert.NoError(cypherDriver.Write(transferOrg1, "TEST_TRANS_ID"))
 	assert.NoError(cypherDriver.conn.CypherBatch([]*neoism.CypherQuery{addMentionsQuery}))
 
 	//write new node and test that it doesn't yet have the relationships
-	assert.NoError(cypherDriver.Write(transferOrg2))
+	assert.NoError(cypherDriver.Write(transferOrg2, "TEST_TRANS_ID"))
 	relationshipsFromNewNode, relationshipsToNewNode, err := getNodeRelationshipNames(cypherDriver.conn, transferOrg2UUID)
 	assert.NoError(err)
 	assert.False(contains(relationshipsFromNewNode, testRelationshipRightToLeft))

@@ -130,9 +130,9 @@ func TestWriteNewOrganisation(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
-	storedOrg, _, err := cypherDriver.Read(fullOrgUUID)
+	storedOrg, _, err := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err)
 	assert.NotEmpty(storedOrg)
@@ -145,9 +145,9 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(minimalOrg))
+	assert.NoError(cypherDriver.Write(minimalOrg, "TEST_TRANS_ID"))
 
-	storedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
+	storedOrg, _, _ := cypherDriver.Read(minimalOrgUUID, "TEST_TRANS_ID")
 
 	assert.Empty(storedOrg.(organisation).HiddenLabel, "Minimal org should not have a hidden label value.")
 
@@ -163,9 +163,9 @@ func TestWriteWillUpdateOrg(t *testing.T) {
 		HiddenLabel: "No longer hidden",
 	}
 
-	assert.NoError(cypherDriver.Write(updatedOrg))
+	assert.NoError(cypherDriver.Write(updatedOrg, "TEST_TRANS_ID"))
 
-	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID)
+	storedUpdatedOrg, _, _ := cypherDriver.Read(minimalOrgUUID, "TEST_TRANS_ID")
 
 	assert.Equal(updatedOrg, storedUpdatedOrg, "org should have been updated")
 	assert.NotEmpty(storedUpdatedOrg.(organisation).HiddenLabel, "Updated org should have a hidden label value")
@@ -178,9 +178,9 @@ func TestWritesOrgsWithEscapedCharactersInfields(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(oddCharOrg))
+	assert.NoError(cypherDriver.Write(oddCharOrg, "TEST_TRANS_ID"))
 
-	storedOrg, found, err := cypherDriver.Read(oddCharOrgUUID)
+	storedOrg, found, err := cypherDriver.Read(oddCharOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err, "Error finding organisation for uuid %s", oddCharOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", oddCharOrgUUID)
@@ -199,15 +199,15 @@ func TestWritesTwoOrgsWithTheSameLegalEntityIdentifier(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(fullOrg))
-	assert.NoError(cypherDriver.Write(privateOrg))
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(privateOrg, "TEST_TRANS_ID"))
 
-	_, found, err := cypherDriver.Read(privateOrgUUID)
+	_, found, err := cypherDriver.Read(privateOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err, "Error finding organisation for uuid %s", privateOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", privateOrgUUID)
 
-	_, found2, err2 := cypherDriver.Read(fullOrgUUID)
+	_, found2, err2 := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err2, "Error finding organisation for uuid %s", fullOrgUUID)
 	assert.True(found2, "Didn't find organisation for uuid %s", fullOrgUUID)
@@ -220,9 +220,9 @@ func TestReadOrganisation(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
-	storedOrg, found, err := cypherDriver.Read(fullOrgUUID)
+	storedOrg, found, err := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
@@ -236,7 +236,7 @@ func TestDeleteNothing(t *testing.T) {
 	defer cleanDB(db, t, assert, uuidsToClean)
 
 	cypherDriver := getCypherDriver(db)
-	res, err := cypherDriver.Delete(fullOrgUUID)
+	res, err := cypherDriver.Delete(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.NoError(err)
 	assert.False(res)
@@ -249,13 +249,13 @@ func TestDeleteWillRemoveNodeAndAllAssociatedIfNoExtraRelationships(t *testing.T
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.Nil(cypherDriver.Write(fullOrg))
+	assert.Nil(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
-	found, err := cypherDriver.Delete(fullOrgUUID)
+	found, err := cypherDriver.Delete(fullOrgUUID, "TEST_TRANS_ID")
 	assert.NoError(err)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
 
-	o, found, err := cypherDriver.Read(fullOrgUUID)
+	o, found, err := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.Equal(organisation{}, o, "Found organisation %v which should have been deleted", o)
 	assert.False(found, "Found organisation for uuid %v which should have been deleted", fullOrgUUID)
@@ -270,16 +270,16 @@ func TestDeleteWillMaintainExternalRelationshipsOnThingNodeIfRelationshipsExist(
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.Nil(cypherDriver.Write(fullOrg))
+	assert.Nil(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
 	//add external relationship(one not maintained by this service)
 	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2", "v2-annotation")
 	writeJSONToService(v2AnnotationsRW, "./test-resources/singleAnnotationForFullOrg.json", contentUUID, assert)
-	found, err := cypherDriver.Delete(fullOrgUUID)
+	found, err := cypherDriver.Delete(fullOrgUUID, "TEST_TRANS_ID")
 	assert.True(found, "Didnt manage to delete organisation for uuid %v", fullOrgUUID)
 	assert.NoError(err, "Error deleting organisation for uuid %v", fullOrgUUID)
 
-	o, found, err := cypherDriver.Read(fullOrgUUID)
+	o, found, err := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 
 	assert.Equal(organisation{}, o, "Found organisation %v which should have been deleted", o)
 	assert.False(found, "Found organisation for uuid %v which should have been deleted", fullOrgUUID)
@@ -294,15 +294,15 @@ func TestToCheckYouCanCreateOrganisationWithDuplicateLeiIdentifier(t *testing.T)
 	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
-	assert.NoError(cypherDriver.Write(fullOrg))
-	err := cypherDriver.Write(dupeLeiIdentifierOrg)
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
+	err := cypherDriver.Write(dupeLeiIdentifierOrg, "TEST_TRANS_ID")
 	assert.Nil(err)
 
-	_, found, err := cypherDriver.Read(fullOrgUUID)
+	_, found, err := cypherDriver.Read(fullOrgUUID, "TEST_TRANS_ID")
 	assert.NoError(err, "Error finding organisation for uuid %s", fullOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", fullOrgUUID)
 
-	_, found, err = cypherDriver.Read(dupeLeiIdentifierOrgUUID)
+	_, found, err = cypherDriver.Read(dupeLeiIdentifierOrgUUID, "TEST_TRANS_ID")
 	assert.NoError(err, "Error finding organisation for uuid %s", dupeLeiIdentifierOrgUUID)
 	assert.True(found, "Didn't find organisation for uuid %s", dupeLeiIdentifierOrgUUID)
 }
@@ -314,8 +314,8 @@ func TestToCheckYouCanNotCreateOrganisationWithDuplicateIdentifier(t *testing.T)
 	db := getDatabaseConnectionAndCheckClean(t, assert, uuidsToClean)
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
-	assert.NoError(cypherDriver.Write(fullOrg))
-	err := cypherDriver.Write(dupeOtherIdentifierOrg)
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
+	err := cypherDriver.Write(dupeOtherIdentifierOrg, "TEST_TRANS_ID")
 	assert.Error(err)
 	assert.IsType(rwapi.ConstraintOrTransactionError{}, err)
 }
@@ -327,8 +327,8 @@ func TestCount(t *testing.T) {
 	cypherDriver := getCypherDriver(db)
 	defer cleanDB(db, t, assert, uuidsToClean)
 
-	assert.NoError(cypherDriver.Write(minimalOrg))
-	assert.NoError(cypherDriver.Write(fullOrg))
+	assert.NoError(cypherDriver.Write(minimalOrg, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
 	count, err := cypherDriver.Count()
 	assert.NoError(err)
