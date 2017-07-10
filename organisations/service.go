@@ -55,7 +55,7 @@ func setListProps(props *map[string]interface{}, itemList *[]string, propName st
 }
 
 //Write - Writes an Organisation node
-func (cd service) Write(thing interface{}) error {
+func (cd service) Write(thing interface{}, transId string) error {
 
 	o := thing.(organisation)
 	props := constructOrganisationProperties(o)
@@ -191,7 +191,7 @@ func (cd service) checkNodeExistence(uuid string) (bool, error) {
 }
 
 //Read - Internal Read of an Organisation
-func (cd service) Read(uuid string) (interface{}, bool, error) {
+func (cd service) Read(uuid string, transId string) (interface{}, bool, error) {
 
 	results := []struct {
 		UUID                   string                 `json:"uuid"`
@@ -284,7 +284,7 @@ func addType(orgType *OrgType, types *[]string) {
 }
 
 //Delete - Deletes an Organisation
-func (cd service) Delete(uuid string) (bool, error) {
+func (cd service) Delete(uuid string, transId string) (bool, error) {
 	clearNode := &neoism.CypherQuery{
 		Statement: `
 			MATCH (org:Thing {uuid: {uuid}})

@@ -105,25 +105,25 @@ func TestConcordeThreeOrganisations(t *testing.T) {
 		ProperName: "Updated Name",
 	}
 
-	assert.NoError(cypherDriver.Write(org1))
-	assert.NoError(cypherDriver.Write(org2))
-	assert.NoError(cypherDriver.Write(org9))
+	assert.NoError(cypherDriver.Write(org1, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org2, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org9, "TEST_TRANS_ID"))
 
-	_, found, _ := cypherDriver.Read(org1UUID)
+	_, found, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org2UUID)
-	_, found, _ = cypherDriver.Read(org9UUID)
+	_, found, _ = cypherDriver.Read(org9UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org9UUID)
 
-	assert.NoError(cypherDriver.Write(org1Updated))
+	assert.NoError(cypherDriver.Write(org1Updated, "TEST_TRANS_ID"))
 
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.False(found, "Organisation for uuid %s should have been deleted", org2UUID)
-	_, found, _ = cypherDriver.Read(org9UUID)
+	_, found, _ = cypherDriver.Read(org9UUID, "TEST_TRANS_ID")
 	assert.False(found, "Organisation for uuid %s should have been deleted", org9UUID)
 
-	org1Stored, found, _ := cypherDriver.Read(org1UUID)
+	org1Stored, found, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
 	assert.Equal(org1Updated, org1Stored)
 }
@@ -137,18 +137,18 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert, concordedUUIDs)
 
 	// STEP 1: write nodes
-	assert.NoError(cypherDriver.Write(org1))
-	assert.NoError(cypherDriver.Write(org2))
-	assert.NoError(cypherDriver.Write(org9))
-	assert.NoError(cypherDriver.Write(org8))
+	assert.NoError(cypherDriver.Write(org1, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org2, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org9, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org8, "TEST_TRANS_ID"))
 
-	_, found, _ := cypherDriver.Read(org1UUID)
+	_, found, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org2UUID)
-	_, found, _ = cypherDriver.Read(org9UUID)
+	_, found, _ = cypherDriver.Read(org9UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org9UUID)
-	_, found, _ = cypherDriver.Read(org8UUID)
+	_, found, _ = cypherDriver.Read(org8UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org8UUID)
 
 	//STEP 2: write relationships
@@ -176,18 +176,18 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 		ParentOrganisation: org8UUID, // should come out from the transformer - otherwise won't be transferred
 	}
 
-	assert.NoError(cypherDriver.Write(updatedOrg1))
+	assert.NoError(cypherDriver.Write(updatedOrg1, "TEST_TRANS_ID"))
 
 	//RESULTS concording should result in:
 
 	// - the presence of node 1 and 8, absence of node 2, 9
-	_, found, _ = cypherDriver.Read(org1UUID)
+	_, found, _ = cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
-	_, found, _ = cypherDriver.Read(org8UUID)
+	_, found, _ = cypherDriver.Read(org8UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org8UUID)
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.False(found, "Didn't find organisation for uuid %s", org2UUID)
-	_, found, _ = cypherDriver.Read(org9UUID)
+	_, found, _ = cypherDriver.Read(org9UUID, "TEST_TRANS_ID")
 	assert.False(found, "Didn't find organisation for uuid %s", org9UUID)
 
 	//- for org 8:
@@ -250,18 +250,18 @@ func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T) {
 	defer cleanDB(db, t, assert, concordedUUIDs)
 
 	//Step1: write nodes
-	assert.NoError(cypherDriver.Write(org1))
-	assert.NoError(cypherDriver.Write(org2))
-	assert.NoError(cypherDriver.Write(org3))
-	assert.NoError(cypherDriver.Write(org8))
+	assert.NoError(cypherDriver.Write(org1, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org2, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org3, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org8, "TEST_TRANS_ID"))
 
-	_, found, _ := cypherDriver.Read(org1UUID)
+	_, found, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org2UUID)
-	_, found, _ = cypherDriver.Read(org3UUID)
+	_, found, _ = cypherDriver.Read(org3UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org3UUID)
-	_, found, _ = cypherDriver.Read(org8UUID)
+	_, found, _ = cypherDriver.Read(org8UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org8UUID)
 
 	//Step 2: concorde org1 with org2
@@ -277,21 +277,21 @@ func TestTransferIncomingHasSubOrganisationOfRelationships(t *testing.T) {
 		ParentOrganisation: org8UUID, // should come out from the transformer - otherwise won't be transferred
 	}
 
-	assert.NoError(cypherDriver.Write(updatedOrg1))
+	assert.NoError(cypherDriver.Write(updatedOrg1, "TEST_TRANS_ID"))
 
 	//Step3: check results
 	// -> no org2
-	_, found, _ = cypherDriver.Read(org1UUID)
+	_, found, _ = cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org1UUID)
-	_, found, _ = cypherDriver.Read(org2UUID)
+	_, found, _ = cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
 	assert.False(found, "Organisation for uuid %s should have been concorded", org2UUID)
-	_, found, _ = cypherDriver.Read(org3UUID)
+	_, found, _ = cypherDriver.Read(org3UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org3UUID)
-	_, found, _ = cypherDriver.Read(org8UUID)
+	_, found, _ = cypherDriver.Read(org8UUID, "TEST_TRANS_ID")
 	assert.True(found, "Didn't find organisation for uuid %s", org8UUID)
 
 	// -> org1 present with incoming and outgoing sub-organisation-of relationships
-	storedOrg1, _, _ := cypherDriver.Read(org1UUID)
+	storedOrg1, _, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.Equal(updatedOrg1, storedOrg1, "orgs should be equal ")
 
 	transferredPropertyLR, transferredPropertyRL, err := readRelationshipDetails(cypherDriver.conn, "Thing", org1UUID)
@@ -321,16 +321,16 @@ func TestConcordeOrgsAndDeleteAlternativeNodes(t *testing.T) {
 		ProperName: "Updated Name",
 	}
 
-	assert.NoError(cypherDriver.Write(org1))
-	assert.NoError(cypherDriver.Write(org2))
+	assert.NoError(cypherDriver.Write(org1, "TEST_TRANS_ID"))
+	assert.NoError(cypherDriver.Write(org2, "TEST_TRANS_ID"))
 
-	storedOrg1, _, _ := cypherDriver.Read(org1UUID)
+	storedOrg1, _, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 	assert.Equal(org1, storedOrg1, "orgs should be equal ")
 
-	assert.NoError(cypherDriver.Write(updatedOrg1))
+	assert.NoError(cypherDriver.Write(updatedOrg1, "TEST_TRANS_ID"))
 
-	storedOrg2, _, _ := cypherDriver.Read(org2UUID)
-	storedUpdatedOrg1, _, _ := cypherDriver.Read(org1UUID)
+	storedOrg2, _, _ := cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
+	storedUpdatedOrg1, _, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 
 	assert.Equal(organisation{}, storedOrg2, "org should have been deleted")
 	assert.Equal(updatedOrg1, storedUpdatedOrg1, "org should have been updated")
@@ -348,7 +348,7 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	defer cleanDB(db, t, assert, concordedUUIDs)
 	defer deleteAllViaService(db, assert, annotationsRW)
 
-	assert.NoError(cypherDriver.Write(org2))
+	assert.NoError(cypherDriver.Write(org2, "TEST_TRANS_ID"))
 
 	relOrg2L, relOrg2R, err := getNodeRelationshipNames(cypherDriver.conn, org2UUID)
 	assert.Nil(err)
@@ -370,7 +370,7 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	}
 
 	writeJSONToService(annotationsRW, "./test-resources/annotationBodyForOrg2.json", contentUUID, assert)
-	assert.NoError(cypherDriver.Write(updatedOrg1))
+	assert.NoError(cypherDriver.Write(updatedOrg1, "TEST_TRANS_ID"))
 
 	relUpdatedOrg1L, relUpdatedOrg1R, err := getNodeRelationshipNames(cypherDriver.conn, org1UUID)
 	assert.Nil(err)
@@ -381,8 +381,8 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 		contains(relUpdatedOrg1R, rel.RelationshipType)
 	}
 
-	storedOrg2, _, _ := cypherDriver.Read(org2UUID)
-	storedOrg1, _, _ := cypherDriver.Read(org1UUID)
+	storedOrg2, _, _ := cypherDriver.Read(org2UUID, "TEST_TRANS_ID")
+	storedOrg1, _, _ := cypherDriver.Read(org1UUID, "TEST_TRANS_ID")
 
 	assert.Equal(organisation{}, storedOrg2, "org should have been deleted")
 	assert.Equal(updatedOrg1, storedOrg1, "org should have been updated")
