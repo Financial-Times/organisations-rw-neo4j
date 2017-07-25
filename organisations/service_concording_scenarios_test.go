@@ -154,11 +154,11 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	//STEP 2: write relationships
 
 	//write V2 mentions, and about annotation for org2UUID, write V2 mentions annotation for org8UUID
-	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2", "v2-annotation")
+	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn)
 	writeJSONToService(v2AnnotationsRW, "./test-resources/annotationBodyForOrg2AndOrg8.json", contentUUID, assert)
 
 	//write V1 mentions annotation for org1UUID and org9UUID - considered as major mentions
-	v1AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1", "v1-annotation")
+	v1AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn)
 	writeJSONToService(v1AnnotationsRW, "./test-resources/annotationBodyForOrg1AndOrg9.json", contentUUID, assert)
 
 	//STEP3: concorde org1, with org2 and org9
@@ -197,8 +197,7 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	transferredPropertyLR, transferredPropertyRL, err := readRelationshipDetails(cypherDriver.conn, "Thing", org8UUID)
 	assert.Nil(err)
 	assert.Equal(0, len(transferredPropertyRL))
-	assert.Equal(2, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v2"})
+	assert.Equal(1, len(transferredPropertyLR))
 	assert.Contains(transferredPropertyLR, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 
 	transferredPropertyLR, transferredPropertyRL, err = readRelationshipDetails(cypherDriver.conn, "Identifier", org8UUID)
@@ -218,10 +217,8 @@ func TestConcordeOrganisationsWithRelationships(t *testing.T) {
 	//	 - 7 IDENTIFIES relationships from identifiers to node
 	transferredPropertyLR, transferredPropertyRL, err = readRelationshipDetails(cypherDriver.conn, "Thing", org1UUID)
 	assert.Nil(err)
-	assert.Equal(3, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v2"})
-	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v1"})
-	assert.Contains(transferredPropertyLR, property{Type: "ABOUT", PlatformVersion: "v2"})
+	assert.Equal(1, len(transferredPropertyLR))
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS"})
 	assert.Equal(1, len(transferredPropertyRL))
 	assert.Contains(transferredPropertyRL, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 
@@ -343,7 +340,7 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	db := getDatabaseConnectionAndCheckClean(t, assert, concordedUUIDs)
 	cypherDriver := getCypherDriver(db)
 
-	annotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v1", "v1-annotation")
+	annotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn)
 
 	defer cleanDB(db, t, assert, concordedUUIDs)
 	defer deleteAllViaService(db, assert, annotationsRW)
@@ -390,8 +387,8 @@ func TestConcordeOrgsWithRelationshipPlatformVersionTransfer(t *testing.T) {
 	transferredPropertyLR, transferredPropertyRL, err := readRelationshipDetails(cypherDriver.conn, "Thing", org1UUID)
 	assert.Nil(err)
 	assert.Equal(2, len(transferredPropertyLR))
-	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS", PlatformVersion: "v1"})
-	assert.Contains(transferredPropertyLR, property{Type: "ABOUT", PlatformVersion: "v1"})
+	assert.Contains(transferredPropertyLR, property{Type: "MENTIONS"})
+	assert.Contains(transferredPropertyLR, property{Type: "ABOUT"})
 	assert.Equal(1, len(transferredPropertyRL))
 	assert.Contains(transferredPropertyRL, property{Type: "SUB_ORGANISATION_OF", PlatformVersion: ""})
 }
@@ -402,12 +399,12 @@ func writeJSONToService(service annotations.Service, pathToJSONFile string, cont
 	dec := json.NewDecoder(f)
 	annotation, errr := service.DecodeJSON(dec)
 	assert.NoError(errr)
-	errrr := service.Write(contentUUID, annotation)
+	errrr := service.Write(contentUUID, "", "", "TEST_TRANS_ID", annotation)
 	assert.NoError(errrr)
 }
 
 func deleteAllViaService(db neoutils.CypherRunner, assert *assert.Assertions, annotationsRW annotations.Service) {
-	_, err := annotationsRW.Delete(contentUUID)
+	_, err := annotationsRW.Delete(contentUUID, "TEST_TRANS_ID")
 	assert.Nil(err)
 
 	qs := []*neoism.CypherQuery{
