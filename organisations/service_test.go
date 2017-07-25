@@ -273,7 +273,7 @@ func TestDeleteWillMaintainExternalRelationshipsOnThingNodeIfRelationshipsExist(
 	assert.Nil(cypherDriver.Write(fullOrg, "TEST_TRANS_ID"))
 
 	//add external relationship(one not maintained by this service)
-	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn, "v2", "v2-annotation")
+	v2AnnotationsRW := annotations.NewCypherAnnotationsService(cypherDriver.conn)
 	writeJSONToService(v2AnnotationsRW, "./test-resources/singleAnnotationForFullOrg.json", contentUUID, assert)
 	found, err := cypherDriver.Delete(fullOrgUUID, "TEST_TRANS_ID")
 	assert.True(found, "Didnt manage to delete organisation for uuid %v", fullOrgUUID)
