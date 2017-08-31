@@ -8,7 +8,7 @@ import (
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/jawher/mow.cli"
 )
 
