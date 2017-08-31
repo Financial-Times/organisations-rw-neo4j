@@ -25,3 +25,5 @@ organisations-rw-neo4j
 *.prof
 
 *.idea
+
+vendor/*/
