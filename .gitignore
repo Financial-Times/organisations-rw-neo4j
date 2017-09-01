@@ -2,3 +2,7 @@
 *.iml
 *.exe
 /organisations-rw-neo4j
+*.test
+*.prof
+*.idea
+vendor/*/
