@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
-	"github.com/Financial-Times/go-fthealth/v1a"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
-	log "github.com/sirupsen/logrus"
 	"github.com/jawher/mow.cli"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -72,12 +73,22 @@ func main() {
 			"organisations": organisationsDriver,
 		}
 
-		var checks []v1a.Check
+		var checks []fthealth.Check
 		for _, service := range services {
 			checks = append(checks, makeCheck(service, db))
 		}
 
-		healthHandler := v1a.Handler("ft-organisations_rw_neo4j ServiceModule", "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule", checks...)
+		timedHC := fthealth.TimedHealthCheck{
+			HealthCheck: fthealth.HealthCheck{
+				SystemCode:  "organisations-rw-neo4j",
+				Description: "Writes 'organisations' to Neo4j, usually as part of a bulk upload done on a schedule",
+				Name:        "organisations-rw-neo4j",
+				Checks:      checks,
+			},
+			Timeout: 10 * time.Second,
+		}
+
+		healthHandler := fthealth.Handler(timedHC)
 		baseftrwapp.RunServerWithConf(baseftrwapp.RWConf{
 			Services:      services,
 			HealthHandler: healthHandler,
@@ -93,8 +104,8 @@ func main() {
 	app.Run(os.Args)
 }
 
-func makeCheck(service baseftrwapp.Service, cr neoutils.CypherRunner) v1a.Check {
-	return v1a.Check{
+func makeCheck(service baseftrwapp.Service, cr neoutils.CypherRunner) fthealth.Check {
+	return fthealth.Check{
 		BusinessImpact:   "Cannot read/write organisations via this writer",
 		Name:             "Check connectivity to Neo4j - neoUrl is a parameter in hieradata for this service",
 		PanicGuide:       "TODO - write panic guide",
