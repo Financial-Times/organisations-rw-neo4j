@@ -11,5 +11,7 @@ image:
 organisations_rw_neo4j:
   graphite_prefix: "coco.services.k8s.organisations-rw-neo4j"
 resources:
+  requests:
+    memory: 25Mi
   limits:
     memory: 256Mi

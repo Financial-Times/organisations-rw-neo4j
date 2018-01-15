@@ -27,10 +27,10 @@
 			"revisionTime": "2017-08-31T12:49:05Z"
 		},
 		{
-			"checksumSHA1": "FUhczVSvt/VQAlWfzATo1YLez2E=",
-			"path": "github.com/Financial-Times/go-fthealth/v1a",
-			"revision": "e7ccca038327a0091303a52445ec1f0fb66cb97b",
-			"revisionTime": "2017-05-25T09:50:41Z"
+			"checksumSHA1": "G8lW8pPVLieqh/MTJZkvI/i/WyM=",
+			"path": "github.com/Financial-Times/go-fthealth/v1_1",
+			"revision": "1b007e2b37b7936dfb6671fa17e5a29fd35a08ea",
+			"revisionTime": "2017-12-04T12:48:31Z"
 		},
 		{
 			"checksumSHA1": "dqF1g4reeLPNN10qTXgDJj3fHm4=",
@@ -45,10 +45,10 @@
 			"revisionTime": "2017-04-05T08:23:10Z"
 		},
 		{
-			"checksumSHA1": "IDKJ/mqVeFl91y07EpjO6Kbnwnc=",
+			"checksumSHA1": "ibld3tkf8qmEKpF69JI4mrSN0T8=",
 			"path": "github.com/Financial-Times/neo-utils-go/neoutils",
-			"revision": "aed125896a5ac0b50296fde5faefed1ebfa7fae3",
-			"revisionTime": "2017-01-04T12:16:44Z"
+			"revision": "5cb1750096545b3c8f7384326247e3e30996a905",
+			"revisionTime": "2017-08-22T15:20:35Z"
 		},
 		{
 			"checksumSHA1": "fqpohN7Qp2qj7TLMbUxh/cK4oH0=",

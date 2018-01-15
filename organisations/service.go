@@ -3,9 +3,10 @@ package organisations
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/jmcvetta/neoism"
-	"sort"
 )
 
 type service struct {
