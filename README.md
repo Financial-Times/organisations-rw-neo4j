@@ -30,21 +30,6 @@ Use gojson against a transformer endpoint to create a organisation struct and up
 
 `curl http://ftaps39403-law1a-eu-t:8080/transformers/organisations/344fdb1d-0585-31f7-814f-b478e54dbe1f | gojson -name=organisation`
 
-## Building
-
-This service is built and deployed via Jenkins.
-
-<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-build/">Build job</a>
-<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-deploy-test/">Deploy to Test job</a>
-<a href="http://ftjen10085-lvpr-uk-p:8181/view/JOBS-organisations-rw-neo4j/job/organisations-rw-neo4j-deploy-prod/">Deploy to Prod job</a>
-
-The build works via git tags. To prepare a new release
-- update the version in /puppet/ft-organisations_rw_neo4j/Modulefile, e.g. to 0.0.12
-- git tag that commit using `git tag 0.0.12`
-- `git push --tags`
-
-The deploy also works via git tag and you can also select the environment to deploy to.
-
 ## Endpoints
 /organisations/{uuid}
 
