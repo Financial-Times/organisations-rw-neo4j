@@ -1,3 +1,6 @@
+*DECOMISSIONED*
+See [Concepts RW Neo4j](https://github.com/Financial-Times/concepts-rw-neo4j) instead
+
 # Organisations Reader/Writer for Neo4j (organisations-rw-neo4j)
 [![Circle CI](https://circleci.com/gh/Financial-Times/organisations-rw-neo4j.svg?style=shield)](https://circleci.com/gh/Financial-Times/organisations-rw-neo4j)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/organisations-rw-neo4j)](https://goreportcard.com/report/github.com/Financial-Times/organisations-rw-neo4j) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/organisations-rw-neo4j/badge.svg)](https://coveralls.io/github/Financial-Times/organisations-rw-neo4j)
 
